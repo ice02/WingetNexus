@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>3179adc5-6551-4c25-ac45-862395d538c2</UserSecretsId>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Client\WingetNexus.Client.csproj" />
+		<ProjectReference Include="..\Data\WingetNexus.Data.csproj" />
+		<ProjectReference Include="..\Shared\WingetNexus.Shared.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.0" />
+		<PackageReference Include="AspNetCore.HealthChecks.System" Version="8.0.0" />
+		<PackageReference Include="AspNetCore.HealthChecks.UI" Version="8.0.0" />
+		<PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.0" />
+		<PackageReference Include="AspNetCore.HealthChecks.UI.InMemory.Storage" Version="8.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.0" NoWarn="NU1605" />
+		<PackageReference Include="Microsoft.FeatureManagement.AspNetCore" Version="3.1.1" />
+		<PackageReference Include="NetEscapades.AspNetCore.SecurityHeaders" Version="0.21.0" />
+		<PackageReference Include="Riok.Mapperly" Version="3.3.0" />
+		<PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+	</ItemGroup>
+
+</Project>

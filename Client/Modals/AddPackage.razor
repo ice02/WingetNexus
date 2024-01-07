@@ -1,0 +1,189 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Headers
+
+@attribute [Authorize]
+@inject IAntiforgeryHttpClientFactory httpClientFactory
+
+@inject MudBlazor.ISnackbar snackBar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors" Model="@modelP">
+
+            <MudPaper Class="mud-width-full ma-4 pa-4">
+                <MudTextField T="string" Label="Name" Required="true" RequiredError="Package name is required!" 
+                              @bind-Value="modelP.Name" For="@(() => modelP.Name)" />
+                <MudTextField T="string" Label="Publisher" Required="true" RequiredError="Publisher is required!"
+                              @bind-Value="modelP.Publisher" For="@(() => modelP.Publisher)" />
+            </MudPaper>
+
+            <MudGrid>
+                <MudItem xs="12">
+                    <VersionMetadataEdit Version="@modelV" IsEdit="@IsEdit" />
+                    <InstallerEdit InstallerModel="@modelI" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+        
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+
+    private bool success;
+    private string[] errors = { };
+    private MudForm? form;
+
+    HttpClient client = null;
+
+    private bool IsEdit = true;
+
+    PackageDto modelP = new ();
+    VersionDto modelV = new();
+    InstallerDto modelI = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = await httpClientFactory.CreateClientAsync();
+
+        modelV.VersionCode = "1.0.0";
+        modelI.Architecture = "x64";
+    }
+
+    IList<IBrowserFile> files = new List<IBrowserFile>();
+    private async void UploadFiles(IBrowserFile file)
+    {
+        files = new List<IBrowserFile>();
+        files.Add(file);
+
+        modelI.InstallerType = GetInstallerTypeFromContentType(file.ContentType);
+        //TODO : check if file extension is valid
+        // if (string.IsNullOrEmpty(model.InstallerType))
+        // {
+        //     return;
+        // }
+
+        using var content = new MultipartFormDataContent();
+
+        var fileContent = new StreamContent(file.OpenReadStream(128 * 1024 * 1024)); // 128 Mo Max
+
+        fileContent.Headers.ContentType =
+            new MediaTypeHeaderValue(file.ContentType);
+
+        content.Add(
+            content: fileContent,
+            name: "\"files\"",
+            fileName: file.Name);
+
+        var result = await client.PostAsync($"api/v1/files", content);
+        if (result.IsSuccessStatusCode)
+        {
+            var resultContent = await result.Content.ReadFromJsonAsync<IList<UploadResult>>();
+            if (resultContent == null || resultContent.Count == 0)
+            {
+                snackBar.Add("Error during upload", Severity.Error);
+            }
+            else
+            {
+                foreach (var item in resultContent)
+                {
+                    if (item.ErrorCode > 0)
+                    {
+                        // TODO: map error code on a message
+                        snackBar.Add(item.ErrorCode.ToString(), Severity.Error);
+                    }
+                    else
+                    {
+                        modelI.InstallerPath = item.FileName;
+                        modelI.InstallerSha256 = item.Checksum;
+                    }
+                }
+            }
+        }
+        else
+        {
+            snackBar.Add(result.ReasonPhrase, Severity.Error);
+        }
+    }
+
+    private bool CheckInstallerType => modelI.InstallerType != "zip";
+
+    //Based on content type value, give the installer type
+    private string GetInstallerTypeFromContentType(string contentType)
+    {
+        var installerType = "";
+        switch(contentType)
+        {
+            case "application/zip":
+                installerType = "zip";
+                break;
+            case "application/msi":
+                installerType = "msi";
+                break;
+            case "application/msix":
+                installerType = "msix";
+                break;
+        }
+
+        return installerType;
+    }
+
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    void Submit() 
+    {
+        //!form.IsValid || Version == null ||
+        if (string.IsNullOrEmpty(modelV.VersionCode) || string.IsNullOrEmpty(modelV.ShortDescription))
+        {
+            snackBar.Add("Mandatory informations are missing", Severity.Warning);
+            return;
+        }
+
+        modelP.Identifier = $"{modelP.Publisher}.{modelP.Name}";
+
+        modelV.VersionCode = modelV.VersionCode;
+        modelV.ShortDescription = modelV.ShortDescription;
+        modelV.Identifier = modelP.Identifier;
+
+        modelV.Installers.Add(modelI);
+
+        modelP.Versions.Add(modelV);
+
+        MudDialog.Close(DialogResult.Ok(modelP));
+    }
+
+    void Cancel() => MudDialog.Cancel();
+
+    // /// <summary>
+    // /// A standard AbstractValidator which contains multiple rules and can be shared with the back end API
+    // /// </summary>
+    // /// <typeparam name="OrderModel"></typeparam>
+    // public class FileModelFluentValidator : AbstractValidator<CreatePackageDto>
+    // {
+    //     public FileModelFluentValidator()
+    //     {
+    //         RuleFor(x => x.Name)
+    //             .NotEmpty()
+    //             .Length(1, 100);
+    //         RuleFor(x => x.File)
+    //         .NotEmpty();
+    //         When(x => x.File != null, () =>
+    //         {
+    //             RuleFor(x => x.File.Size).LessThanOrEqualTo(10485760).WithMessage("The maximum file size is 10 MB");
+    //         });
+    //     }
+
+    //     public Func<object, string, Task<IEnumerable<string>>> ValidateValue => async (model, propertyName) =>
+    //     {
+    //         var result = await ValidateAsync(ValidationContext<FileModel>.CreateWithOptions((FileModel)model, x => x.IncludeProperties(propertyName)));
+    //         if (result.IsValid)
+    //             return Array.Empty<string>();
+    //         return result.Errors.Select(e => e.ErrorMessage);
+    //     };
+    // }
+}

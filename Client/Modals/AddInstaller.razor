@@ -1,0 +1,62 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Headers
+
+@inject MudBlazor.ISnackbar snackBar
+
+@attribute [Authorize]
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors" Model="@Installer">
+        <MudPaper Class="mud-width-full mb-4 pa-4">
+            <InstallerEdit InstallerModel="Installer" />
+        </MudPaper>
+        </MudForm>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code
+{
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public InstallerDto Installer { get; set; }
+
+    private bool success;
+    private string[] errors = { };
+    private MudForm? form;
+
+    protected override async Task OnInitializedAsync()
+    {
+        //TODO: check if needed
+        if (Installer == null)
+        {
+            Installer = new InstallerDto();
+        }
+    }
+
+
+    void Submit()
+    {
+        if (string.IsNullOrEmpty(Installer.Scope) || string.IsNullOrEmpty(Installer.Architecture) || 
+            string.IsNullOrEmpty(Installer.InstallerType) || string.IsNullOrEmpty(Installer.InstallerPath) ||
+                (Installer.InstallerType == "zip" && 
+                    (Installer.NestedInstallerFiles == null || Installer.NestedInstallerFiles.Count == 0)
+                )
+           )
+        {
+            snackBar.Add("Mandatory informations are missing", Severity.Warning);
+            return;
+        }
+        //if (form!.IsValid)
+        //{
+            MudDialog.Close(DialogResult.Ok(Installer));
+        //}
+    }
+    void Cancel() => MudDialog.Cancel();
+}

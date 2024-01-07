@@ -1,0 +1,36 @@
+﻿@* @inject NavigationManager NavigationManager *@
+
+@page "/docs/view"
+
+<iframe src="swagger" style="width:77vw;height:calc(85vh);border:none; margin-top:-120px; position:fixed;" />
+
+@* @inject IJSRuntime JS
+
+<div id="swagger-ui"></div>
+
+<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.10.0/swagger-ui.css" />
+<script src="https://unpkg.com/swagger-ui-dist@5.10.0/swagger-ui-bundle.js" crossorigin></script>
+<script>
+    window.loadswagger = function () {
+        const ui = SwaggerUIBundle({
+            url: '@($"{NavigationManager.ToAbsoluteUri("swagger/v1/swagger.json")}")',
+            dom_id: '#swagger-ui',
+            presets: [
+                SwaggerUIBundle.presets.apis
+            ]
+        })
+        window.ui = ui
+    }
+</script>
+
+@code {
+    private ElementReference divElement;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("loadswagger");
+        }
+    }
+} *@

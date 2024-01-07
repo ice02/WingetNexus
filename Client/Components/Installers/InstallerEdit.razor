@@ -1,0 +1,282 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Headers
+@using WingetNexus.Shared.Helpers
+
+@attribute [Authorize]
+@inject IAntiforgeryHttpClientFactory httpClientFactory
+
+@inject MudBlazor.ISnackbar snackBar
+
+
+
+@*     <MudTextField T="string" @bind-Value="PackageModel.Version"
+                  Label="Version" HelperText="Fill with version number" Required="true" />
+
+    <MudTextField T="string" @bind-Value="PackageModel.ShortDescription" Label="Short description" Required="true" RequiredError="Description is mandatory!" /> *@
+
+<MudPaper Class="mud-width-full ma-4 pa-4">
+
+    @if (InstallerModel != null)
+    {
+        <MudTabs Elevation
+        ="2" Rounded
+        ="true" ApplyEffectsToContainer
+        ="true" PanelClass
+        ="pa-6" @bind-ActivePanelIndex="activeIndex">
+            <ChildContent>
+                <MudTabPanel Text="Upload a file">
+                    <MudFileUpload T="IBrowserFile" AppendMultipleFiles="false" FilesChanged="UploadFiles" Required="true">
+                        <ButtonTemplate>
+                            <MudButton HtmlTag="label"
+                            Variant="Variant.Filled"
+                            Color="Color.Primary"
+                            StartIcon="@Icons.Material.Filled.AttachFile"
+                            for="@context">
+                                Upload binaries
+                            </MudButton>
+                        </ButtonTemplate>
+                    </MudFileUpload>
+
+                    @if (files != null && files.Count > 0)
+                    {
+                        <MudList>
+                            @foreach (var file in files)
+                            {
+                                <MudListItem Icon="@Icons.Material.Filled.AttachFile" @key="@file">
+                                    @file.Name <code>@file.Size bytes</code>
+                                </MudListItem>
+                                @* TODO: remove file *@
+                            }
+                        </MudList>
+                    }
+                </MudTabPanel>
+
+                <MudTabPanel Text="Give a URL" >
+                    <div class="d-flex">
+                        <MudTextField T="string" @bind-Value="InstallerModel.InstallerPath"
+                        Label="URL to installer" HelperText="Fill with url to download installer" Required="true" />
+                        <MudTextField T="string" @bind-Value="InstallerModel.InstallerSha256"
+                        Label="Setup file Checksum" HelperText="Fill with checksum os the setup file" Required="true" />
+
+                    </div>
+                </MudTabPanel>
+
+            </ChildContent>
+        </MudTabs>
+
+
+
+        @* <MudSwitch Label="User/Machine scope" /> *@
+
+        <div class="d-flex mt-4">
+            <MudRadioGroup T="string" Required="true" RequiredError="Scope is mandatory!"
+                       @bind-SelectedOption="InstallerModel.Scope" For="@(() => InstallerModel.Scope)">
+                <MudRadio Option="@("user")">User</MudRadio>
+                <MudRadio Option="@("machine")">Machine</MudRadio>
+            </MudRadioGroup>
+        </div>
+
+
+
+        <div class="d-flex align-center justify-space-between">
+            <MudSelect T="string" Required="true" RequiredError="Type is mandatory!"
+                   Label="Installer type" @bind-Value = "selectedValue"> 
+                   @* ValueChanged="onValueChanged"> *@
+                <MudSelectItem Value="@("msix")">msix</MudSelectItem>
+                <MudSelectItem Value="@("msi")">msi</MudSelectItem>
+                <MudSelectItem Value="@("zip")">zip</MudSelectItem>
+                <MudSelectItem Value="@("appx")">appx</MudSelectItem>
+                <MudSelectItem Value="@("exe")">exe</MudSelectItem>
+                @* <MudSelectItem Value="@("inno")">inno</MudSelectItem>
+            <MudSelectItem Value="@("cab")">cab</MudSelectItem>
+            <MudSelectItem Value="@("pwa")">Progressive web app</MudSelectItem>
+            <MudSelectItem Value="@("nullsoft")">nullsoft</MudSelectItem>
+            <MudSelectItem Value="@("msstore")">MS Store</MudSelectItem> *@
+            </MudSelect>
+            <MudTextField @bind-Value="relativeFilePath" Label="Executable file path" Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="CheckInstallerType" />
+            <MudTextField @bind-Value="shortcutName" Label="Shortcut name" Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="CheckInstallerType" />
+        </div>
+
+        <div class="d-flex mt-4">
+            <MudRadioGroup T="string" Required="true" RequiredError="Architecture is mandatory!"
+                       @bind-SelectedOption="InstallerModel.Architecture" For="@(() => InstallerModel.Architecture)">
+                <MudRadio Option="@("x86")">x86</MudRadio>
+                <MudRadio Option="@("x64")">x64</MudRadio>
+                <MudRadio Option="@("ARM")">ARM</MudRadio>
+                <MudRadio Option="@("ARM64")">ARM 64</MudRadio>
+            </MudRadioGroup>
+        </div>
+        }
+    
+</MudPaper>
+
+@code {
+    [Parameter] public InstallerDto InstallerModel { get; set; }
+
+    HttpClient httpClient = null;
+    string relativeFilePath = string.Empty;
+    string shortcutName = string.Empty;
+    string selectedValue
+    {
+        get { return InstallerModel != null ? InstallerModel.InstallerType : "msix"; }
+        set
+        {
+            InstallerModel.InstallerType = value;
+
+            if (InstallerModel.InstallerType == "zip")
+            {
+                InstallerModel.NestedInstallerFiles = new List<NestedInstallerFileDto>()
+                {
+                    new NestedInstallerFileDto()
+                    {
+                        PortableCommandAlias = shortcutName,
+                        RelativeFilePath = relativeFilePath,
+                    }
+                };
+            }
+            else
+            {
+                InstallerModel.NestedInstallerFiles = null;
+            }
+        }
+    }
+
+    // private async void onValueChanged(string value)
+    // {
+    //     InstallerModel.InstallerType = value;
+
+    //     if (InstallerModel.InstallerType == "zip")
+    //     {
+    //         InstallerModel.NestedInstallerFiles = new List<NestedInstallerFileDto>()
+    //         {
+    //             new NestedInstallerFileDto()
+    //             {
+    //                 PortableCommandAlias = string.Empty,
+    //                 RelativeFilePath = relativeFilePath
+    //             }
+    //         };
+    //     }
+    //     else
+    //     {
+    //         InstallerModel.NestedInstallerFiles = null;
+    //     }
+    // }
+
+    private int activeIndex 
+    { 
+        get 
+        { 
+            if (InstallerModel == null)
+                return 0;
+            return (InstallerModel.IsLocalPackage ? 0 : 1); 
+        } 
+        set 
+        { 
+            InstallerModel.IsLocalPackage = (value != 1); 
+        } 
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        httpClient = await httpClientFactory.CreateClientAsync();
+
+        if (InstallerModel == null)
+        {
+            InstallerModel = new InstallerDto();
+            InstallerModel.Scope = "user";
+            InstallerModel.Architecture = "x64";
+        }
+        else
+        {
+            selectedValue = InstallerModel.InstallerType;
+            if (InstallerModel.NestedInstallerFiles != null && InstallerModel.NestedInstallerFiles.Count > 0 && InstallerModel.InstallerType == "zip")
+            {
+                relativeFilePath = InstallerModel.NestedInstallerFiles[0].RelativeFilePath;
+            }
+        }
+    }
+
+    IList<IBrowserFile> files = new List<IBrowserFile>();
+    private async void UploadFiles(IBrowserFile file)
+    {
+        files = new List<IBrowserFile>();
+        files.Add(file);
+
+        InstallerModel.InstallerType = GetInstallerTypeFromContentType(file.ContentType);
+        //TODO : check if file extension is valid
+        // if (string.IsNullOrEmpty(model.InstallerType))
+        // {
+        //     return;
+        // }
+
+        using var content = new MultipartFormDataContent();
+
+        var fileContent = new StreamContent(file.OpenReadStream(128 * 1024 * 1024)); // 128 Mo Max
+
+        var provider = new FileExtensionContentTypeProvider();
+        string contentType;
+        if (!provider.TryGetContentType(file.Name, out contentType))
+        {
+            contentType = "application/octet-stream";
+        }
+
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+
+        content.Add(
+            content: fileContent,
+            name: "\"files\"",
+            fileName: file.Name);
+
+        var result = await httpClient.PostAsync($"api/v1/files", content);
+        if (result.IsSuccessStatusCode)
+        {
+            var resultContent = await result.Content.ReadFromJsonAsync<IList<UploadResult>>();
+            if (resultContent == null || resultContent.Count == 0)
+            {
+                snackBar.Add("Error during upload", Severity.Error);
+            }
+            else
+            {
+                foreach (var item in resultContent)
+                {
+                    if (item.ErrorCode > 0)
+                    {
+                        // TODO: map error code on a message
+                        snackBar.Add(item.ErrorCode.ToString(), Severity.Error);
+                    }
+                    else
+                    {
+                        InstallerModel.InstallerPath = item.FileName;
+                        InstallerModel.InstallerSha256 = item.Checksum;
+                    }
+                }
+            }
+        }
+        else
+        {
+            snackBar.Add(result.ReasonPhrase, Severity.Error);
+        }
+    }
+
+    private bool CheckInstallerType => InstallerModel.InstallerType != "zip";
+
+    //Based on content type value, give the installer type
+    private string GetInstallerTypeFromContentType(string contentType)
+    {
+        var installerType = "";
+        switch (contentType)
+        {
+            case "application/zip":
+                installerType = "zip";
+                break;
+            case "application/msi":
+                installerType = "msi";
+                break;
+            case "application/msix":
+                installerType = "msix";
+                break;
+        }
+
+        return installerType;
+    }
+}

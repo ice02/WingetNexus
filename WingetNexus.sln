@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WingetNexus.Shared", "Shared\WingetNexus.Shared.csproj", "{58136951-E24D-48E9-BBC7-6D9CBC379B58}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WingetNexus.Server", "Server\WingetNexus.Server.csproj", "{168C20BD-F443-4988-A6CC-E36B41AEDD44}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WingetNexus.Client", "Client\WingetNexus.Client.csproj", "{E409DF04-0F41-496F-AEDF-31494EB73433}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WingetNexus.Data", "Data\WingetNexus.Data.csproj", "{D5680C02-1F50-446F-BE2D-47D3CFB52576}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{0DE168A1-4090-4489-BD8A-B394A2C35533}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\OIG.jfif = Docs\OIG.jfif
+		Readme.md = Readme.md
+		Docs\Store.png = Docs\Store.png
+		Docs\_d3252ba7-ad5c-4ff7-b7f4-4154820d000a.jfif = Docs\_d3252ba7-ad5c-4ff7-b7f4-4154820d000a.jfif
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WingetNexus.Server.Tests", "WingetNexus.Server.Tests\WingetNexus.Server.Tests.csproj", "{386CA811-8AB3-467B-9C20-183798128FC7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{58136951-E24D-48E9-BBC7-6D9CBC379B58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58136951-E24D-48E9-BBC7-6D9CBC379B58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58136951-E24D-48E9-BBC7-6D9CBC379B58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58136951-E24D-48E9-BBC7-6D9CBC379B58}.Release|Any CPU.Build.0 = Release|Any CPU
+		{168C20BD-F443-4988-A6CC-E36B41AEDD44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{168C20BD-F443-4988-A6CC-E36B41AEDD44}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{168C20BD-F443-4988-A6CC-E36B41AEDD44}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{168C20BD-F443-4988-A6CC-E36B41AEDD44}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E409DF04-0F41-496F-AEDF-31494EB73433}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E409DF04-0F41-496F-AEDF-31494EB73433}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E409DF04-0F41-496F-AEDF-31494EB73433}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E409DF04-0F41-496F-AEDF-31494EB73433}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5680C02-1F50-446F-BE2D-47D3CFB52576}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5680C02-1F50-446F-BE2D-47D3CFB52576}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5680C02-1F50-446F-BE2D-47D3CFB52576}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5680C02-1F50-446F-BE2D-47D3CFB52576}.Release|Any CPU.Build.0 = Release|Any CPU
+		{386CA811-8AB3-467B-9C20-183798128FC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{386CA811-8AB3-467B-9C20-183798128FC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{386CA811-8AB3-467B-9C20-183798128FC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{386CA811-8AB3-467B-9C20-183798128FC7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6DBF8473-06FC-43AF-A14F-41F17AB93C7E}
+	EndGlobalSection
+EndGlobal

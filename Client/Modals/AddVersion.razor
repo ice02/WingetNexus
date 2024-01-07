@@ -1,0 +1,82 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Headers
+
+@attribute [Authorize]
+
+@inject MudBlazor.ISnackbar snackBar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors" Model="@Version">
+            @if (errors.Length > 0)
+            {
+                @* <MudAlert Severity="Severity.Error" Elevation="0" Class="mud-width-full mb-4">
+                    <MudAlertTitle>Error</MudAlertTitle>
+                    <MudAlertDescription>
+                        <ul>
+                            @foreach (var error in errors)
+                            {
+                                <li>@error</li>
+                            }
+                        </ul>
+                    </MudAlertDescription>
+                </MudAlert>
+            } *@
+                <MudPaper Class="pa-4 mud-height-full">
+                    <MudText Typo="Typo.subtitle2">@($"Errors ({errors.Length})")</MudText>
+                    @foreach (var error in errors)
+                    {
+                        <MudText Color="@Color.Error">@error</MudText>
+                    }
+                </MudPaper>
+            }
+
+            <MudPaper Class="mud-width-full mb-4 pa-4">
+                @* adding field for version form  *@            
+                @* TODO: use a component *@
+                <MudTextField T="string" Label="Version" Required="true" RequiredError="Version is required!" 
+                              @bind-Value="Version.VersionCode" For="@(() => Version.VersionCode)" />
+                <MudTextField T="string" Label="Short Description" Required="true" RequiredError="Description is required!"
+                              @bind-Value="Version.ShortDescription" For="@(() => Version.ShortDescription)" />
+                <MudTextField T="string" Label="Default locale" Required="true" RequiredError="Localization is required!"
+                              @bind-Value="Version.PackageLocale" For="@(() => Version.PackageLocale)" />
+            </MudPaper>
+
+            <MudGrid>
+                <MudItem xs="12">
+                    <InstallerList Version="@Version" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code
+{
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter] public VersionDto Version { get; set; }
+
+    private bool success;
+    private string[] errors = { };
+    private MudForm? form;
+
+    void Submit()
+    {
+        if (string.IsNullOrEmpty(this.Version.VersionCode) || string.IsNullOrEmpty(this.Version.ShortDescription) || string.IsNullOrEmpty(this.Version.PackageLocale))
+        {
+            snackBar.Add("Mandatory informations are missing", Severity.Warning);
+            return;
+        }
+
+        // if (form!.IsValid)
+        // {
+            MudDialog.Close(DialogResult.Ok(Version));
+        //}
+    }
+    void Cancel() => MudDialog.Cancel();
+}

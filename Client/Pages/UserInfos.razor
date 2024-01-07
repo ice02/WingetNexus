@@ -1,0 +1,30 @@
+﻿@page "/userinfos"
+
+
+
+@if (user.Identity.IsAuthenticated)
+{
+    <h3>@user.Identity.Name</h3>
+
+    foreach (var claim in user.Claims)
+    {
+        <p>@claim.Type: @claim.Value</p>
+    }
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    ClaimsPrincipal user = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await authenticationStateTask;
+        user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            Console.WriteLine($"{user.Identity.Name} is authenticated.");
+        }
+    }
+}

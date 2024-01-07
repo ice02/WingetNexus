@@ -1,0 +1,133 @@
+﻿@attribute [Authorize]
+
+@inject IAntiforgeryHttpClientFactory httpClientFactory
+
+@inject MudBlazor.ISnackbar snackBar
+@inject IDialogService DialogService
+
+
+    <MudCard>
+        <MudCardHeader Class="d-flex">
+
+            <CardHeaderAvatar>
+                <MudAvatar Color="Color.Secondary">@Installer.Scope</MudAvatar>
+            </CardHeaderAvatar>
+
+                <CardHeaderContent>
+                    <MudText Typo="Typo.body1">@Installer.InstallerPath</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions >
+                    <MudStack Row="true">
+                        <MudIconButton Variant="Variant.Filled" Class="d-flex ml-2" Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" @onclick="(e=> OnEditInstallerButtonClicked(Installer.Id))" />
+                        <MudIconButton Variant="Variant.Filled" Class="d-flex ml-2 mr-2" Icon="@Icons.Material.Filled.DeleteForever" Color="Color.Secondary" @onclick="(e=> OnDeleteInstallerButtonClicked(Installer.Id))" />
+                    </MudStack>
+                </CardHeaderActions>
+
+        </MudCardHeader>
+        <MudCardContent>
+            <MudGrid>
+
+                @* form with all the infos *@
+                <MudItem xs="12" sm="6" md="4">
+                    <MudField Label="Scope" Variant="Variant.Filled">@Installer.Scope</MudField>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudField Label="Architecture" Variant="Variant.Filled">@Installer.Architecture</MudField>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudField Label="Installer type" Variant="Variant.Filled">@Installer.InstallerType</MudField>
+                </MudItem>
+
+                @* assume the fact for now only one nested installer file *@
+                @if (Installer.NestedInstallerFiles != null && Installer.NestedInstallerFiles.Count > 0)
+                {
+                    <MudItem xs="6">
+                        <MudField Label="Relative path" Variant="Variant.Filled">@Installer.NestedInstallerFiles[0].RelativeFilePath</MudField>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudField Label="Command Alias" Variant="Variant.Filled">@Installer.NestedInstallerFiles[0].PortableCommandAlias</MudField>
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                <MudField Label="Checksum" Variant="Variant.Filled">@Installer.InstallerSha256</MudField>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    
+   
+
+
+    @code {
+    [Parameter] public InstallerDto Installer { get; set; }
+
+    HttpClient httpClient = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        httpClient = await httpClientFactory.CreateClientAsync();
+    }
+
+    private async Task OnEditInstallerButtonClicked(int versionId)
+    {
+        var options = new DialogOptions
+            {
+                CloseOnEscapeKey = false,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+        var parameters = new DialogParameters<AddInstaller> { { x => x.Installer, Installer } };
+
+        var dialog = await DialogService.ShowAsync<AddInstaller>($"Modify an installer", parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var data = (InstallerDto)result.Data;
+
+            data.PackageVersionId = versionId;
+
+            //TODO: validate form before sending
+
+            //call api to add the installer for the current version
+            var res = await httpClient.PutAsJsonAsync($"api/v1/installer/{Installer.Id}", data);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                snackBar.Add(res.ReasonPhrase, Severity.Error);
+            }
+            else
+            {
+                snackBar.Add("Installer modified", Severity.Success);
+                Installer = await res.Content.ReadFromJsonAsync<InstallerDto>();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async void OnDeleteInstallerButtonClicked(int installerId)
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            "Warning",
+            "Deleting can not be undone!",
+            yesText: "Delete!", cancelText: "Cancel");
+        if (confirm == true)
+        {
+            var res = await httpClient.DeleteAsync($"api/v1/installer/{installerId}");
+            if (!res.IsSuccessStatusCode)
+            {
+                snackBar.Add(res.ReasonPhrase, Severity.Error);
+            }
+            else
+            {
+                snackBar.Add("Installer deleted", Severity.Success);
+                StateHasChanged();
+            }
+        }
+    }
+}

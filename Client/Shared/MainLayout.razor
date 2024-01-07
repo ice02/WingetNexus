@@ -1,0 +1,87 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+    <MudLayout>
+        <MudAppBar Elevation="0">
+            <AuthorizeView>
+                <Authorized>
+                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+                    <MudSpacer />
+                    <strong>Hello, @context?.User?.Identity?.Name!</strong>
+                    <form method="post" action="api/Account/Logout">
+                        <AntiForgeryTokenInput />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Log out</MudButton>
+                    </form>
+                </Authorized>
+                <NotAuthorized>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Href="api/Account/Login">Log in</MudButton>
+                </NotAuthorized>
+            </AuthorizeView>
+        <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Inherit" Href="https://github.com/ice02/WingetNexus" Target="_blank" />
+        </MudAppBar>
+        <AuthorizeView>
+            <Authorized>
+                <MudDrawer @bind-Open="_drawerOpen" Elevation="1">
+                    <MudDrawerHeader>
+                        <MudText Typo="Typo.h6">WingetNexus</MudText>
+                    </MudDrawerHeader>
+                    <NavMenu />
+                </MudDrawer>
+            </Authorized>
+        </AuthorizeView>
+        <MudMainContent>
+            <MudContainer MaxWidth="MaxWidth.Large" Class="my-16 pt-16">
+                <AuthorizeView>
+                    <Authorized>
+                        @Body
+                    </Authorized>
+                    <NotAuthorized>
+                        <div class="d-flex justify-center">
+                            <MudImage Src="img/store.png" Width="300" Height="300" ObjectFit="ObjectFit.Cover" Class="rounded-lg"  />
+                        </div>
+                        <br/>
+                        <MudText Typo="Typo.h6">You are not authorized to access this resource.</MudText>
+                        <MudText Typo="Typo.h5">Please Log in.</MudText>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+
+    @* <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <div class="main">
+        <div class="top-row px-4 auth">
+            <AuthorizeView>
+                <Authorized>
+                    <strong>Hello, @context?.User?.Identity?.Name!</strong>
+                    <form method="post" action="api/Account/Logout">
+                        <AntiForgeryTokenInput/>
+                        <button class="btn btn-link" type="submit">Sign out</button>
+                    </form>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="api/Account/Login">Log in</a>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+
+        <div class="content px-4">
+            @Body
+        </div>
+    </div> *@
+
+
+@code {
+    bool _drawerOpen = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

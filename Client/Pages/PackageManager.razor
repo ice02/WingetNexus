@@ -1,0 +1,194 @@
+﻿@page "/packagemanager"
+
+@using WingetNexus.Client.Modals
+@using WingetNexus.Shared.Models
+@using WingetNexus.Shared.Models.Dtos
+
+@attribute [Authorize]
+@* @attribute [RenderModeInteractiveAuto] *@
+
+@inject IAntiforgeryHttpClientFactory httpClientFactory
+
+@inject MudBlazor.ISnackbar snackBar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+
+
+<MudPaper Elevation="25" Class="ma-4">
+    <MudToolBar>
+        <MudText Typo="Typo.h6">Winget Applications</MudText>
+        <MudChip>@packages.Count() application(s)</MudChip>
+        @* <MudChip>@packages.Select(p=>p.Versions).Count() versions(s)</MudChip> *@
+        <MudSpacer />
+        <MudButton @onclick="OpenDialogQuickAdd" Variant="Variant.Filled" Color="Color.Primary">Add new application</MudButton>
+        @* <MudButton @onclick="OpenNew" Variant="Variant.Filled" Color="Color.Primary">Add new package</MudButton> *@
+    </MudToolBar>
+</MudPaper>
+
+@if (noPackage)
+{
+    <MudText Class="mt-1">No package found</MudText>
+}
+else
+{
+    
+<MudTable Elevation="25" Class="ma-4" Items="@packages" T="PackageDto" Filter="new Func<PackageDto, bool>(Search)" Loading="@isLoading"
+          FixedHeader="true">
+    <ToolBarContent>
+        <MudTextField @bind-Value="searchString" Placeholder="Search for applications..." Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <HeaderContent>
+        @* <MudTh></MudTh> *@
+        <MudTh>Publisher</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Identifier</MudTh>
+        <MudTh>Latest Version</MudTh>
+        @* <MudTh>Download count</MudTh> *@
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+
+    <RowTemplate >
+        @* <MudTd><MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => ShowBtnPress(context.Id))">@((context.ShowDetails == true) ? "Hide" : "Show") Sow versions</MudButton></MudTd> *@
+        <MudTd DataLabel="Publisher">@context.Publisher</MudTd>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Identifier">@context.Identifier</MudTd>
+            <MudTd DataLabel="Latest version">@context.Versions.OrderByDescending(p => p.DateAdded).FirstOrDefault()?.VersionCode</MudTd>
+            @* <MudTd DataLabel="Download count">@context.DownloadCount</MudTd> *@
+            <MudTd DataLabel="Actions">
+                <MudFab @onclick="@(()=>OpenDialogUpdate(@context))" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" Size="Size.Small" IconSize="Size.Small" />
+                <MudFab @onclick="@(()=>Delete(@context.Identifier))" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Delete" Size="Size.Small" IconSize="Size.Small" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+}
+    
+
+@code {
+    private string searchString = "";
+    private IEnumerable<PackageDto> packages = new List<PackageDto>();
+    private bool isLoading = false;
+    private bool noPackage = false;
+
+    HttpClient client = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(1);
+
+        client = await httpClientFactory.CreateClientAsync();
+
+        await GetPackages();
+    }
+
+    //TODO: add pagination
+    private async Task GetPackages()
+    {
+        isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var res = await client.GetAsync("api/v1/packages");
+            if (!res.IsSuccessStatusCode)
+            {
+                snackBar.Add(res.ReasonPhrase, Severity.Error);
+            }
+            else
+            {
+                packages = await res?.Content?.ReadFromJsonAsync<IEnumerable<PackageDto>>();
+                if (packages == null || packages.Count() == 0)
+                {
+                    noPackage = true;
+                }
+                else
+                {
+                    noPackage = false;
+                }
+
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            snackBar.Add(ex.Message, Severity.Error);
+        }
+        isLoading = false;
+    }
+
+    private bool Search(PackageDto package)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (package.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (package.Publisher.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (package.Identifier.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private void OpenNew()
+    {
+        NavigationManager.NavigateTo("/packageEdit");
+    }
+
+    private void OpenDialogUpdate(PackageDto package)
+    {
+        NavigationManager.NavigateTo("/packageEdit/" + package.Identifier);
+    }
+
+    private async Task OpenDialogQuickAdd()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<AddPackage>("Add a new application with a version", options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var data = result.Data as PackageDto;
+
+            var res = await client.PostAsJsonAsync($"api/v1/packages", data);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                var error = await res.Content.ReadAsStringAsync();
+                snackBar.Add(error, Severity.Error);
+            }
+            else
+            {
+                snackBar.Add("Application added successfully.", Severity.Success);
+                await GetPackages();
+            }
+        }
+    }
+
+    private async void Delete(string id)
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            "Warning",
+            "Deleting can not be undone!",
+            yesText: "Delete!", cancelText: "Cancel");
+        if (confirm == true)
+        {
+            var res = await client.DeleteAsync($"api/v1/packages/{id}");
+            if (!res.IsSuccessStatusCode)
+            {
+                snackBar.Add(res.ReasonPhrase, Severity.Error);
+            }
+            else
+            {
+                snackBar.Add("Application fully deleted", Severity.Success);
+                await GetPackages();
+
+                StateHasChanged();
+            }
+
+
+        }
+    }
+
+}

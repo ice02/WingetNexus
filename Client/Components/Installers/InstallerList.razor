@@ -1,0 +1,99 @@
+﻿@attribute [Authorize]
+@inject IAntiforgeryHttpClientFactory httpClientFactory
+
+@inject MudBlazor.ISnackbar snackBar
+@inject IDialogService DialogService
+
+<MudPaper Class="mud-width-full pa-4">
+    <div class="d-flex">
+        <MudText Class="mt-1">Installers </MudText>
+        <MudIconButton Variant="Variant.Filled" Class="d-flex ml-auto" Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="AddInstaller" />
+    </div>
+
+    @if (Version.Installers == null)
+    {
+        <MudText Class="mt-1">No installer found</MudText>
+    }
+    else
+    {
+        <MudList>
+
+            @foreach (var item in Version.Installers)
+            {
+                <MudListItem>
+                    <InstallerInfos Installer="@item" />
+                </MudListItem>
+            }
+
+        </MudList>
+    }
+
+</MudPaper>
+
+@code {
+    [Parameter] public VersionDto Version { get; set; }
+
+    HttpClient httpClient = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        httpClient = await httpClientFactory.CreateClientAsync();
+    }
+
+    private async Task AddInstaller()
+    {
+        var options = new DialogOptions
+            {
+                CloseOnEscapeKey = false,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+        var installer = new InstallerDto();
+        var parameters = new DialogParameters<AddInstaller> { { x => x.Installer, installer } };
+
+        var dialog = await DialogService.ShowAsync<AddInstaller>($"Add an installer", parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var data = (InstallerDto)result.Data;
+
+            //call api to add the installer for the current version
+            //if version is not existing, just add to the collection
+            //else, update the version
+            if (Version == null || Version.Id == 0)
+            {
+                if (Version == null)
+                {
+                    Version = new VersionDto();
+                }
+
+                if (Version.Installers == null)
+                {
+                    Version.Installers = new List<InstallerDto>();
+                }
+
+                Version.Installers.Add(data);
+            }
+            else
+            {
+                var res = await httpClient.PostAsJsonAsync($"api/v1/installer/{Version.Id}", data);
+
+                if (!res.IsSuccessStatusCode)
+                {
+                    snackBar.Add(res.ReasonPhrase, Severity.Error);
+                }
+                else
+                {
+                    snackBar.Add("Installer added to the version", Severity.Success);
+                    Version = await res.Content.ReadFromJsonAsync<VersionDto>();
+                }
+            }
+        }
+    }
+
+    
+}

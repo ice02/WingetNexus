@@ -1,0 +1,41 @@
+﻿        <AuthorizeView>
+            <Authorized>
+
+                @* <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <span class="oi oi-home" aria-hidden="true"></span> Home
+                    </NavLink>
+                </li>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="directapi">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> Direct API call
+                    </NavLink>
+                </li> *@
+
+                <MudNavMenu>
+                    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+                    <MudNavLink Href="packagemanager" Icon="@Icons.Material.Filled.Apps"> Applications </MudNavLink>
+            <MudNavLink Href="healthchecks" Icon="@Icons.Material.Filled.WheelchairPickup"> Health checks </MudNavLink>
+            <MudNavLink Href="docs/view" Icon="@Icons.Material.Filled.DocumentScanner"> Swagger </MudNavLink>
+            <MudNavLink Href="userinfos" Icon="@Icons.Material.Filled.VerifiedUser"> UserInfos </MudNavLink>
+            
+
+                </MudNavMenu>
+  
+            </Authorized>
+            <NotAuthorized>
+                <p class="whiteColor">no access</p>
+            </NotAuthorized>
+        </AuthorizeView>
+        
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

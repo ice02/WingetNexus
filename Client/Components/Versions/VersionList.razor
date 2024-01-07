@@ -1,0 +1,238 @@
+﻿@attribute [Authorize]
+@inject IAntiforgeryHttpClientFactory httpClientFactory
+@inject MudBlazor.ISnackbar snackBar
+@inject IDialogService DialogService
+
+
+<MudPaper Class="mud-width-full pa-4">
+    <div class="d-flex">
+        <MudText Class="mt-1">Versions </MudText>
+        @* <MudButton Class="d-flex ml-auto" Variant="Variant.Filled" Color="Color.Secondary" OnClick="AddVersion">
+        Add new version
+        </MudButton> *@
+        <MudIconButton Variant="Variant.Filled" Class="d-flex ml-auto" Icon="@Icons.Material.Filled.Add" 
+                        Color="Color.Primary" OnClick="AddVersion" />
+    </div>
+
+@*     <MudDrawer @bind-Open="@versionEditOpen" Elevation="0" Variant="@DrawerVariant.Persistent"
+               Color="Color.Primary" Anchor="Anchor.End" Width="400px">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6">My App</MudText>
+        </MudDrawerHeader>
+        <MudNavMenu>
+            <MudNavLink Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard" IconColor="Color.Inherit">Dashboard</MudNavLink>
+            <MudNavLink Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.LocalLibrary" IconColor="Color.Inherit">Library</MudNavLink>
+            <MudNavLink Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.People" IconColor="Color.Inherit">Community</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer> *@
+
+    @if (Package == null)
+    {
+        <MudText Class="mt-1">Error in package loading</MudText>
+    }
+    else
+    {
+        if (Package.Versions == null || Package.Versions.Count() == 0)
+        {
+            <MudText Class="mt-1">No version found</MudText>
+        }
+        else
+        {
+            <MudExpansionPanels Elevation="0">
+                @foreach (var version in Package.Versions)
+                    {
+                        <MudExpansionPanel>
+                            <TitleContent>
+                                <div class="d-flex">
+                                <MudIconButton Variant="Variant.Filled" Class="d-flex ml-2" Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" @onclick="(e=> UpdateVersion(version))" />
+                                    <MudIconButton Variant="Variant.Filled" Class="d-flex ml-2 mr-2" Icon="@Icons.Material.Filled.DeleteForever" Color="Color.Secondary" @onclick="(e=> OnDeleteVersionButtonClicked(version.Id))" />
+                                    <MudText Class="mt-2">Version @version.VersionCode</MudText>
+                                    <MudText Overlap="true" Class="d-flex ml-auto mr-4 mt-2">created @version.DateAdded</MudText>
+                                </div>
+                            </TitleContent>
+                            <ChildContent>
+                                <div class="mb-4">
+                                    <InstallerList Version="version"  />
+                                </div>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
+        }
+    }
+</MudPaper>
+
+
+@code {
+    [Parameter] public PackageDto? Package { get; set; }
+
+    private string searchString = "";
+    private bool isLoading = false;
+    //private IEnumerable<VersionDto> versions = new List<VersionDto>();
+
+    private HttpClient httpClient = null;
+
+    bool versionEditOpen = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        httpClient = await httpClientFactory.CreateClientAsync();
+        //await GetPackageVersions();
+    }
+
+    // private async Task GetPackageVersions()
+    // {
+    //     isLoading = true;
+    //     try
+    //     {
+    //         Package.Versions = (await httpClient.GetFromJsonAsync<IQueryable<VersionDto>>("api/v1/packages/" + Package.Identifier + "/versions")).ToList();
+
+
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         snackBar.Add(ex.Message, Severity.Error);
+    //         Console.WriteLine(ex.Message);
+    //     }
+    //     isLoading = false;
+    // }
+
+    private bool Search(VersionDto version)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (version.ShortDescription.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (version.PackageLocale.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (version.VersionCode.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private async Task AddVersion()
+    {
+        //versionEditOpen = true;
+        var options = new DialogOptions 
+        { 
+            CloseOnEscapeKey = false, 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true, 
+            CloseButton = true 
+        };
+
+        var version = new VersionDto { Identifier = Package.Identifier };
+        var parameters = new DialogParameters<AddVersion> { { x => x.Version, version } };
+
+        var dialog = await DialogService.ShowAsync<AddVersion>($"Update {Package.Name}", parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var data = result.Data as VersionDto;
+
+            var res = await httpClient.PostAsJsonAsync($"api/v1/versions/{Package.Identifier}", data);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                var error = res.ReasonPhrase;
+                snackBar.Add(error, Severity.Error);
+            }
+            else
+            {
+                snackBar.Add("Version added successfully.", Severity.Success);
+                //await GetPackageVersions();
+                var addedVersion = await res.Content.ReadFromJsonAsync<VersionDto>();
+                if (addedVersion != null)
+                {
+                    Package.Versions.Add(addedVersion);
+                };
+
+            }
+        }
+    }
+
+    private async Task UpdateVersion(VersionDto? version)
+    {
+        if (version == null)
+        {
+            return;
+        }
+
+        //versionEditOpen = true;
+        var options = new DialogOptions 
+        { 
+            CloseOnEscapeKey = false, 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true, 
+            CloseButton = true 
+        };
+
+        var parameters = new DialogParameters<AddVersion> { { x => x.Version, version } };
+
+        var dialog = await DialogService.ShowAsync<AddVersion>($"Update {Package.Name}", parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var versionDto = result.Data as VersionDto;
+
+            var res = await httpClient.PutAsJsonAsync($"api/v1/versions/{version.Id}", versionDto);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                var error = res.ReasonPhrase;
+                snackBar.Add(error, Severity.Error);
+            }
+            else
+            {
+                snackBar.Add("Version updated successfully.", Severity.Success);
+                //await GetPackageVersions();
+                var updatedVersion = await res.Content.ReadFromJsonAsync<VersionDto>();
+                if (updatedVersion != null)
+                {
+                    Package.Versions.Remove(Package.Versions.FirstOrDefault(x => x.Id == version.Id));
+                    Package.Versions.Add(updatedVersion);
+                };
+            }
+        }
+    }
+
+    private void OnEditVersionButtonClicked(int versionId)
+    {
+        //NavigationManager.NavigateTo("/packageEdit/" + PackageID + "/versionEdit/" + versionId);
+    }
+
+private async void OnDeleteVersionButtonClicked(int versionId)
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            "Warning",
+            "Deleting can not be undone!",
+            yesText: "Delete!", cancelText: "Cancel");
+        if (confirm == true)
+        {
+            try
+            {
+                var res = await httpClient.DeleteAsync("api/v1/versions/" + versionId);
+                if (!res.IsSuccessStatusCode)
+                {
+                    var error = res.ReasonPhrase;
+                    snackBar.Add(error, Severity.Error);
+                }
+                else
+                {
+                    snackBar.Add("Version successfully deleted.", Severity.Success);
+                    Package.Versions.Remove(Package.Versions.FirstOrDefault(x => x.Id == versionId));
+                    StateHasChanged();
+                }
+            }
+            catch (Exception ex)
+            {
+                snackBar.Add(ex.Message, Severity.Error);
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+}

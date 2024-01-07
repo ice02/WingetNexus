@@ -1,0 +1,74 @@
+﻿@page "/packageEdit/{id}"
+@page "/packageEdit"
+
+@attribute [Authorize]
+@inject IAntiforgeryHttpClientFactory httpClientFactory
+
+@inject MudBlazor.ISnackbar snackBar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+
+<MudButton Variant="Variant.Filled" Color="Color.Default" Class="mb-8" OnClick='() => NavigationManager.NavigateTo("/packagemanager")'>Back to applications list</MudButton>
+
+@if (isEdit)
+{
+    <PackageMetadataInfos package="@package" />
+}
+
+<MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors" Model="@package">
+
+    <div class="mt-4">
+        <PackageMetadataEdit Package="package" IsNewPackage="!isEdit" />
+    </div>
+
+    
+    <div class="mt-4">
+        <VersionList Package="@package" />
+    </div>
+
+</MudForm>
+
+@code {
+    [Parameter] public string? id { get; set; }
+
+    bool isEdit = false;
+    bool success;
+    string[] errors = { };
+    MudForm form;
+
+    HttpClient client = null;
+
+    private PackageDto package = new PackageDto();
+
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = await httpClientFactory.CreateClientAsync();
+
+        if (!string.IsNullOrEmpty(id))
+        {
+            package = await GetPackage(id);
+            isEdit = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<PackageDto> GetPackage(string? id)
+    {
+        isLoading = true;
+        try
+        {
+            return await client.GetFromJsonAsync<PackageDto>("api/v1/packages/" + id);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+        return null;
+    }
+}
