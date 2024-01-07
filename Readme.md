@@ -47,27 +47,3 @@ Now you can add it as a package source in winget using the command provided in t
 ```
 winget source add -n WingetNexus -t "Microsoft.Rest" -a https://localhost:5001/api/v1/winget/
 ```
-
-and query it:
-
-```
-❯ winget search Signal -s WinGetty
-Name   ID            Version
-----------------------------
-Signal Signal.Signal 1.0.0
-```
-and install packages:
-```
-❯ winget install Signal.Signal -s WinGetty
-Found bottom [Signal.Signal] Version 1.0.0
-This application is licensed to you by its owner.
-Microsoft is not responsible for, nor does it grant any licenses to, third-party packages.
-Downloading  https://wingetty.dev/api/download/Signal.Signal/1.0.0/x64/both
-  ██████████████████████████████  112 MB /  112 MB
-Successfully verified installer hash
-Starting package install...
-Successfully installed
-
-~ took 12s
-❯
-```
