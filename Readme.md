@@ -37,33 +37,15 @@ It is currently in [pre-1.0](https://semver.org/#spec-item-4) development so con
 
 ## 🧭 Getting Started
 
-### 🐋 Docker
-1. Install Docker on your machine. Refer to the [official Docker documentation](https://docs.docker.com/get-docker/) for instructions specific to your operating system.
-2. Download the docker-compose.yml file from the main branch.
-3. Open the docker-compose.yml file and modify the configuration values according to your preferences.  
-The configurable options are:
-* WINGETTY_SQLALCHEMY_DATABASE_URI: This parameter allows you to specify the database URI for storing WinGetty's data. By default, it is set to use SQLite with a file named database.db. You can use any database URI supported by SQLAlchemy, such as MySQL or PostgreSQL.
-* WINGETTY_SECRET_KEY: This parameter sets the secret key used for securing WinGetty's sessions and other cryptographic operations. Replace the value with a random string.
-* WINGETTY_ENABLE_REGISTRATION: By default, user registration is enabled (1). If you want to disable user registration, set this value to 0 after you have created your first user.
-* WINGETTY_REPO_NAME: This parameter specifies the name of your WinGetty repository. You can change it to any desired name.
-4. Start the WinGetty application using Docker Compose:
-`docker-compose up -d`  
-This command launches the WinGetty container in the background.
-5. Access the web interface by opening your browser and navigating to http://localhost:8080.  
-If you're running WinGetty on a remote server, replace localhost with the appropriate IP address or hostname.
-6. Upon accessing the web interface for the first time, you will be prompted to register a user, this user will become the admin user by default.
-
 > ⚠️ **Note**: WinGet requires HTTPS for secure communication and without it WinGet will throw an error. It is recommended to put WinGetty behind a reverse proxy with a client-trusted SSL/TLS certificate.  
 By using a reverse proxy with HTTPS, you can ensure secure transmission of data between clients and WinGetty. Popular reverse proxy solutions include NGINX, Apache, and Caddy. Please refer to the documentation of your chosen reverse proxy for detailed instructions on configuring SSL/TLS certificates.
 
-### 🪄 Using WinGetty
-
-You can test the WinGet API by opening `http://localhost:8080/wg/information` in a browser or with `curl` / `Invoke-RestMethod`.
+You can test the WinGet API by opening `http://localhost:8080/api/v1/winget/information` in a browser or with `curl` / `Invoke-RestMethod`.
 
 Now you can add it as a package source in winget using the command provided in the 'Setup' tab in the webinterface:
 
 ```
-winget source add -n WingetNexus -t "Microsoft.Rest" -a https://localhost:5001/winget/
+winget source add -n WingetNexus -t "Microsoft.Rest" -a https://localhost:5001/api/v1/winget/
 ```
 
 and query it:
