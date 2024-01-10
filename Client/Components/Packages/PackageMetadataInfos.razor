@@ -1,0 +1,9 @@
+﻿<MudPaper Class="pa-4">
+    <MudText>@package.Publisher / @package.Name </MudText>
+        <MudText>@package.Identifier</MudText>
+        @* <MudChip>@package.Versions.</MudChip> <MudChip>@package.</MudChip> *@
+    </MudPaper>
+
+    @code {
+    [Parameter] public PackageDto package { get; set; }
+}

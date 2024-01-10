@@ -1,0 +1,189 @@
+﻿@attribute [Authorize]
+@inject IAntiforgeryHttpClientFactory httpClientFactory
+
+@inject MudBlazor.ISnackbar snackBar
+
+<MudPaper Class="mud-width-full pa-4">
+    <MudText>Application infos </MudText>
+
+    <div class="d-flex">
+        <MudTextField T="string" Label="Publisher" Required="true" RequiredError="Publisher is required!"
+                      @bind-Value="Package.Publisher" For="@(() => Package.Publisher)" />
+        <MudTextField T="string" Label="Name" Required="true" RequiredError="Package name is required!"
+                      @bind-Value="Package.Name" For="@(() => Package.Name)" />
+    </div>
+    @* <MudTextField T="string" Label="Identifier" Required="true" RequiredError="Identifier is required!"
+    @bind-Value="Package.Identifier" For="@(() => Package.Identifier)" /> *@
+
+    @if (!IsNewPackage)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-8"
+                   Disabled="@_updateProcessing" OnClick="UpdateInformations">Update informations</MudButton>
+    }
+    else
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-8"
+                   Disabled="@_updateProcessing" OnClick="CreatePackage">Create package</MudButton>
+    }
+</MudPaper>
+
+@code
+{
+    [Parameter] public PackageDto Package { get; set; }
+    [Parameter] public bool IsNewPackage { get; set; }
+
+    HttpClient httpClient = null;
+
+    protected async override Task OnInitializedAsync()
+    {
+        httpClient = await httpClientFactory.CreateClientAsync();
+
+        if (Package == null)
+        {
+            Package = new PackageDto();
+        }
+    }
+
+    private bool _updateProcessing = false;
+
+    async Task UpdateInformations()
+    {
+        _updateProcessing = true;
+
+        try
+        {
+            if (!string.IsNullOrEmpty(Package.Publisher) && !string.IsNullOrEmpty(Package.Name))
+            {
+                var res = await httpClient.PutAsJsonAsync($"api/v1/packages/{Package.Identifier}/infos",
+                    new NewPackageDto
+                        {
+                            Publisher = Package.Publisher,
+                            Name = Package.Name
+                        });
+
+                if (!res.IsSuccessStatusCode)
+                {
+                    snackBar.Add(res.ReasonPhrase, Severity.Error);
+                }
+                else
+                {
+                    snackBar.Add("Package updated", Severity.Success);
+                    IsNewPackage = false;
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            snackBar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _updateProcessing = false;
+        }
+    }
+
+    async Task CreatePackage()
+    {
+        _updateProcessing = true;
+
+        try
+        {
+            if (!string.IsNullOrEmpty(Package.Publisher) && !string.IsNullOrEmpty(Package.Name))
+            {
+                var res = await httpClient.PostAsJsonAsync($"api/v1/packages",
+                    new NewPackageDto
+                        {
+                            Publisher = Package.Publisher,
+                            Name = Package.Name
+                        });
+
+                if (!res.IsSuccessStatusCode)
+                {
+                    snackBar.Add(res.ReasonPhrase, Severity.Error);
+                }
+                else
+                {
+                    snackBar.Add("Package created", Severity.Success);
+                    Package = await res.Content.ReadFromJsonAsync<PackageDto>();
+                    IsNewPackage = false;
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            snackBar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _updateProcessing = false;
+        }
+    }
+}
+
+@* @using System.ComponentModel.DataAnnotations
+@using Newtonsoft.Json;
+@using System.Net.Http.Headers;
+
+@inject HttpClient Http
+@inject MudBlazor.ISnackbar snackBar
+
+<MudPaper Class="mud-width-full pa-4">
+    <MudText>Application infos </MudText>
+
+    <MudTextField T="string" Label="Name" Required="true" RequiredError="Package name is required!"
+                  @bind-Value="updateModel.Name" For="@(() => updateModel.Name)" />
+    <MudTextField T="string" Label="Publisher" Required="true" RequiredError="Publisher is required!"
+                  @bind-Value="updateModel.Publisher" For="@(() => updateModel.Publisher)" />
+    <MudTextField T="string" Label="Identifier" Required="true" RequiredError="Identifier is required!"
+                  @bind-Value="updateModel.Identifier" For="@(() => updateModel.Identifier)" />
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-8"
+               Disabled="@_updateProcessing" OnClick="UpdateInformations">Update informations</MudButton>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public UpdatePackageDto updateModel { get; set;}
+
+    async Task UpdateInformations()
+    {
+        _updateProcessing = true;
+
+        // var content = new UpdatePackageDto
+        // {
+        //     Name = package.Name,
+        //     Publisher = package.Publisher,
+        //     Identifier = package.Identifier
+        // };
+
+        StringContent stringContent = new StringContent(JsonConvert.SerializeObject(updateModel))
+            {
+                Headers = { ContentType = new MediaTypeHeaderValue("application/json") }
+            };
+
+        var result = await Http.PutAsync($"api/v1/packages/{package.Id}", stringContent);
+
+        if (result.IsSuccessStatusCode)
+        {
+            package.Name = updateModel.Name;
+            package.Publisher = updateModel.Publisher;
+            package.Identifier = updateModel.Identifier;
+
+            snackBar.Add("Package modified successfully", Severity.Info);
+        }
+        else
+        {
+            snackBar.Add(result.ReasonPhrase, Severity.Error);
+        }
+
+        _updateProcessing = false;
+        //show snackbar with success or error
+
+
+    }
+}
+ *@
