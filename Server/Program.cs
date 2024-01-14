@@ -10,6 +10,7 @@ using WingetNexus.Data;
 using WingetNexus.Data.DataStores;
 using WingetNexus.Data.Extensions;
 using WingetNexus.Server.Security;
+using WingetNexus.Server.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,8 +71,20 @@ services
 
 services.AddSingleton<IWingetNexusDataStore, WingetNexusDataStore>();
 
+//Storage management
+if (featureManager.IsEnabledAsync("S3Storage").Result)
+{
+    //services.AddAWSService<IAmazonS3>();
+    services.Configure<S3StorageSettings>(configuration.GetSection("S3StorageSettings"));
+    services.AddSingleton<IStorageService, S3StorageService>();
+}
+else
+{
+    services.Configure<LocalStorageSettings>(configuration.GetSection("LocalStorageSettings"));
+    services.AddSingleton<IStorageService, LocalStorageService>();
+}
 
-services.AddRazorPages().AddMvcOptions(options =>
+    services.AddRazorPages().AddMvcOptions(options =>
 {
     //var policy = new AuthorizationPolicyBuilder()
     //    .RequireAuthenticatedUser()

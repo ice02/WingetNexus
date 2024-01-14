@@ -13,37 +13,38 @@ namespace WingetNexus.Controllers.v1
         private readonly IHostEnvironment _env;
         private readonly ILogger<FilesController> _logger;
         private readonly IConfiguration _configuration;
+        private readonly IStorageService _storageService;
 
         public FilesController(IHostEnvironment env,
                 ILogger<FilesController> logger, 
-                IConfiguration configuration
+                IConfiguration configuration,
+                IStorageService storageService
             )
         {
             _env = env;
             _logger = logger;
             _configuration = configuration;
+            _storageService = storageService;
         }
 
         [HttpGet]
-        public IActionResult Get()
+        public async Task<IActionResult> Get()
         {
-            var files = System.IO.Directory.GetFiles($"./upload/");
+            //var files = System.IO.Directory.GetFiles($"./upload/");
+            var files = await _storageService.GetAllAsync();
             return Ok(files);
         }
 
         [HttpGet("{filename}")]
-        public IActionResult Get(string filename)
+        public async Task<IActionResult> Get(string filename)
         {
-            var path = _configuration["uploadPath"];
-
-            if (string.IsNullOrEmpty(path))
+            if (filename == null)
             {
-                path = Path.Combine(_env.ContentRootPath,
-                                                   _env.EnvironmentName, "upload");
+                   return NoContent();
             }
 
-            path = Path.Combine(path, filename);
-            var file = System.IO.File.OpenRead(path);
+            var file = await _storageService.GetAsync(filename);
+
             return File(file, "application/octet-stream");
         }
 
@@ -98,23 +99,25 @@ namespace WingetNexus.Controllers.v1
                             // TODO: change to a name based on package metadata
                             //trustedFileNameForFileStorage = Path.GetRandomFileName();
 
-                            var path = _configuration["uploadPath"];
+                            //var path = _configuration["uploadPath"];
 
-                            if (string.IsNullOrEmpty(path))
-                            {
-                                path = Path.Combine(_env.ContentRootPath,
-                                                    _env.EnvironmentName, "upload");
-                            }
+                            //if (string.IsNullOrEmpty(path))
+                            //{
+                            //    path = Path.Combine(_env.ContentRootPath,
+                            //                        _env.EnvironmentName, "upload");
+                            //}
 
-                            path = Path.Combine(path, untrustedFileName);
+                            //path = Path.Combine(path, untrustedFileName);
 
                             //await using FileStream fs = new(path, FileMode.Create);
                             //await file.CopyToAsync(fs);
 
-                            using (var stream = new FileStream(path, FileMode.Create))
-                            {
-                                await file.CopyToAsync(stream);
-                            }
+                            //using (var stream = new FileStream(path, FileMode.Create))
+                            //{
+                            //    await file.CopyToAsync(stream);
+                            //}
+
+                            var path = await _storageService.SaveAsync(untrustedFileName, file.OpenReadStream());
 
                             _logger.LogInformation("{InstallerPath} saved at {Path}",
                                 trustedFileNameForDisplay, path);

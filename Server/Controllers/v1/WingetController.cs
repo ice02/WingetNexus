@@ -299,10 +299,8 @@ namespace WingetNexus.Controllers.v1
                     return NoContent();
                 }
 
-                if (maximum_results != null)
-                {
-                    packages = packages.Take(maximum_results).ToList();
-                }
+                packages = packages.Take(maximum_results).ToList();
+                
             }
 
             if (!packages.Any())
