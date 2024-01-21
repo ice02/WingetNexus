@@ -15,10 +15,21 @@ namespace WingetNexus.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
+            Database.EnsureCreated();
+            //EnableSensitiveDataLogging = true;
         }
 
-        public DbSet<Register> Registration { get; set; } = default!;
-        public DbSet<TokenInfo> TokenInfo { get; set; } = default!;
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<UserRole>()
+                .HasIndex(p => new { p.UserId, p.RoleName })
+                .IsUnique();
+            
+            base.OnModelCreating(modelBuilder);
+        }
+
+        //public DbSet<Register> Registration { get; set; } = default!;
+        //public DbSet<TokenInfo> TokenInfo { get; set; } = default!;
         public DbSet<UserRole> UserRoles { get; set; } = default!;
     }
 

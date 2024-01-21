@@ -4,11 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WingetNexus.Data.Models
+namespace WingetNexus.Shared.Models.Dtos
 {
-    public class UserRole
+    public class UserRoleDto
     {
-        [System.ComponentModel.DataAnnotations.Key]
         public int Id { get; set; }
         public string? RoleName { get; set; }
         public string? UserId { get; set; }

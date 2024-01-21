@@ -1,0 +1,67 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Headers
+
+
+@attribute [Authorize(Policy = "IsAdmin")]
+
+@inject IAntiforgeryHttpClientFactory httpClientFactory
+
+@inject MudBlazor.ISnackbar snackBar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors" Model="@model">
+
+            @* <MudPaper Class="mud-width-full ma-4 pa-4">
+                <MudTextField T="string" Label="Name" Required="true" RequiredError="Package name is required!"
+                              @bind-Value="modelP.Name" For="@(() => modelP.Name)" />
+                <MudTextField T="string" Label="Publisher" Required="true" RequiredError="Publisher is required!"
+                              @bind-Value="modelP.Publisher" For="@(() => modelP.Publisher)" />
+            </MudPaper>
+
+            <MudGrid>
+                <MudItem xs="12">
+                    <VersionMetadataEdit Version="@modelV" IsEdit="@IsEdit" />
+                    <InstallerEdit InstallerModel="@modelI" />
+                </MudItem>
+            </MudGrid> *@
+        </MudForm>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    private bool success;
+    private string[] errors = { };
+    private MudForm? form;
+
+    HttpClient client = null;
+    UserRoleDto model = new UserRoleDto();
+
+    private bool IsEdit = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = await httpClientFactory.CreateClientAsync();
+    }
+
+
+    
+
+    void Submit()
+    {
+        //!form.IsValid || Version == null ||
+
+        MudDialog.Close(DialogResult.Ok(model));
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

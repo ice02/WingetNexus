@@ -18,6 +18,11 @@
             <MudNavLink Href="healthchecks" Icon="@Icons.Material.Filled.WheelchairPickup"> Health checks </MudNavLink>
             <MudNavLink Href="docs/view" Icon="@Icons.Material.Filled.DocumentScanner"> Swagger </MudNavLink>
             <MudNavLink Href="userinfos" Icon="@Icons.Material.Filled.VerifiedUser"> UserInfos </MudNavLink>
+            @* <AuthorizeView Policy="IsAdmin">
+                <Authorized Context="adminCtx"> *@
+                    <MudNavLink Href="usersadmin" Icon="@Icons.Material.Filled.People"> Users administration </MudNavLink>
+                @* </Authorized>
+            </AuthorizeView> *@
             
 
                 </MudNavMenu>

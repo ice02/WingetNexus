@@ -28,6 +28,8 @@ namespace WingetNexus.Controllers.v1
         }
 
         [HttpGet]
+        [ValidateAntiForgeryToken]
+        [Authorize(Policy = "IsAuthorized", AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
         public async Task<IActionResult> Get()
         {
             //var files = System.IO.Directory.GetFiles($"./upload/");
@@ -36,6 +38,7 @@ namespace WingetNexus.Controllers.v1
         }
 
         [HttpGet("{filename}")]
+        [AllowAnonymous]
         public async Task<IActionResult> Get(string filename)
         {
             if (filename == null)
@@ -50,7 +53,7 @@ namespace WingetNexus.Controllers.v1
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
+        [Authorize(Policy = "IsAuthorized", AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
         public async Task<ActionResult<IList<UploadResult>>> PostFile(
         [FromForm] IEnumerable<IFormFile> files)
         {

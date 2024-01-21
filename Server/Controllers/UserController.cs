@@ -1,4 +1,6 @@
-﻿using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
+﻿using WingetNexus.Data.DataStores;
+using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
+using WingetNexus.Server.Mappers;
 
 namespace WingetNexus.Server.Controllers;
 
@@ -7,6 +9,22 @@ namespace WingetNexus.Server.Controllers;
 [ApiController]
 public class UserController : ControllerBase
 {
+    private IApplicationDatastore _applicationDatastore;
+
+    public UserController(IApplicationDatastore applicationDatastore)
+    {
+        _applicationDatastore = applicationDatastore;
+    }
+
+    [HttpGet("all")]
+    //[Authorize(Roles = "Admin")]
+    [Authorize]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        var users = _applicationDatastore.GetAllUsers();
+        return Ok(users.UserRoleToDto().ToList());
+    }
+
     [HttpGet]
     [AllowAnonymous]
     public IActionResult GetCurrentUser() => Ok(CreateUserInfo(User));
@@ -44,8 +62,9 @@ public class UserController : ControllerBase
             // Uncomment this code if you want to send additional claims to the client.
             var claims = claimsPrincipal.Claims.Select(u => new ClaimValue(u.Type, u.Value))
                                                   .ToList();
-
             userInfo.Claims = claims;
+
+            //userInfo.Roles = 
         }
 
         return userInfo;

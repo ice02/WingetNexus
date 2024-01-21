@@ -2,6 +2,7 @@
 using IdentityModel.OidcClient;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement;
 using Microsoft.IdentityModel.Tokens;
@@ -17,6 +18,23 @@ var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 var configuration = builder.Configuration;
 var env = builder.Environment;
+
+//if (OperatingSystem.IsWindows())
+//{
+//    // get congifuration from config file
+//    configuration = new ConfigurationBuilder()
+//        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+//        .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+//        .AddEnvironmentVariables()
+//        .Build();
+//}
+//else
+//{ 
+//    //get configuration from environment variables
+//    configuration = new ConfigurationBuilder()
+//        .AddEnvironmentVariables()
+//        .Build();
+//}
 
 services.AddAntiforgery(options =>
 {
@@ -70,6 +88,7 @@ services
     .AddJsonOptions(options =>options.JsonSerializerOptions.PropertyNamingPolicy = null);
 
 services.AddSingleton<IWingetNexusDataStore, WingetNexusDataStore>();
+services.AddTransient<IApplicationDatastore, ApplicationDatastore>();
 
 //Storage management
 if (featureManager.IsEnabledAsync("S3Storage").Result)
@@ -84,7 +103,7 @@ else
     services.AddSingleton<IStorageService, LocalStorageService>();
 }
 
-    services.AddRazorPages().AddMvcOptions(options =>
+services.AddRazorPages().AddMvcOptions(options =>
 {
     //var policy = new AuthorizationPolicyBuilder()
     //    .RequireAuthenticatedUser()
@@ -92,19 +111,23 @@ else
     //options.Filters.Add(new AuthorizeFilter(policy));
 });
 
-services.AddAuthorization(config =>
-{
-    config.AddPolicy("IsAuthorized",
-        policy => policy.RequireClaim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", "email")
-        );
-});
-
-//services.AddAuthorization(options =>
+//services.AddAuthorization(config =>
 //{
-//    options.AddPolicy("AuthorizationPolicy", policy => policy.Requirements.Add(new DatabasePolicyRequirement()));
+//    config.AddPolicy("IsAuthorized",
+//        policy => policy.RequireClaim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", "email")
+//        );
 //});
 
-//services.AddScoped<IAuthorizationHandler, DatabasePolicyAuthorizationHandler>();
+services.AddScoped<IDatabaseAuthenticationManager, DatabaseAuthenticationManager>();
+
+services.AddScoped<IAuthorizationHandler, DatabasePolicyAuthorizationHandler>();
+services.AddAuthorization(options =>
+{
+    options.AddPolicy("IsAuthorized", policy => policy.Requirements.Add(new DatabasePolicyRequirement(new string[]{ "contributor", "admin" })));
+    options.AddPolicy("IsAdmin", policy => policy.Requirements.Add(new DatabasePolicyRequirement(new string[] { "admin" })));
+});
+
+
 
 services.Configure<IISServerOptions>(options =>
 {
@@ -141,15 +164,20 @@ if (configuration["DatabaseType"] == "SQLite")
 {
     services.AddSqliteWithCache<WingetNexusContext>(
         configuration.GetConnectionString("WingetSqLiteContext") ?? throw new InvalidOperationException("Connection String is not found"));
+    services.AddSqlite<AppDbContext>(
+        configuration.GetConnectionString("AppSqLiteContext") ?? throw new InvalidOperationException("Connection String is not found"));
 }
 else
 {
     services.AddPGSqlWithCache<WingetNexusContext>(
         configuration.GetConnectionString("WingetPGSqlContext") ?? throw new InvalidOperationException("Connection String is not found"));
- 
+    services.AddNpgsql<AppDbContext>(
+        configuration.GetConnectionString("AppPGSqlContext") ?? throw new InvalidOperationException("Connection String is not found"));
+
     if (featureManager.IsEnabledAsync("HealthChecks").Result)
     {
         services.AddHealthChecks().AddNpgSql(builder.Configuration.GetConnectionString("WingetPGSqlContext"));
+        services.AddHealthChecks().AddNpgSql(builder.Configuration.GetConnectionString("AppPGSqlContext"));
     }
 }
 

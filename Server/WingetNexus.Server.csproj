@@ -19,7 +19,7 @@
 		<PackageReference Include="AspNetCore.HealthChecks.UI" Version="8.0.0" />
 		<PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.0" />
 		<PackageReference Include="AspNetCore.HealthChecks.UI.InMemory.Storage" Version="8.0.0" />
-		<PackageReference Include="AWSSDK.S3" Version="3.7.305.10" />
+		<PackageReference Include="AWSSDK.S3" Version="3.7.305.14" />
 		<PackageReference Include="Azure.Storage.Blobs" Version="12.19.1" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.0" NoWarn="NU1605" />
@@ -28,6 +28,9 @@
 		<PackageReference Include="Riok.Mapperly" Version="3.3.0" />
 		<PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="Microsoft.Identity.Web.GraphServiceClient" Version="2.16.1" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="2.16.1" />
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="2.16.1" />
 	</ItemGroup>
 
 </Project>

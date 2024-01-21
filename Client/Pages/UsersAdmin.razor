@@ -1,0 +1,80 @@
+﻿@page "/usersadmin"
+
+@using WingetNexus.Client.Modals
+@using WingetNexus.Shared.Models
+@using WingetNexus.Shared.Models.Dtos
+
+@* @attribute [Authorize(Policy = "IsAuthorized")] *@
+@attribute [Authorize]
+
+@inject IAntiforgeryHttpClientFactory httpClientFactory
+
+@inject MudBlazor.ISnackbar snackBar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+
+<AuthorizeView>@*  Policy="IsAdmin"> *@
+    <Authorized>
+        @* @if (UserAccountManager.UserList == null)
+        {
+            <span>Loading...</span>
+        }
+        else
+        {
+        } *@
+
+<MudPaper Elevation="25" Class="ma-4">
+    <MudToolBar>
+        <MudText Typo="Typo.h6">Winget nexus users</MudText>
+        <MudChip>@users.Count() users(s)</MudChip>
+        <MudSpacer />
+        <MudButton @onclick="OpenNew" Variant="Variant.Filled" Color="Color.Primary">Add new user</MudButton>
+    </MudToolBar>
+
+    <MudTable Items="@users" Hover="true" Breakpoint="Breakpoint.Sm" LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>User ID</MudTh>
+        <MudTh>Role Name</MudTh>
+        <MudTh>Action</MudTh>
+    </HeaderContent>
+    <RowTemplate Context="userCtx">
+        <MudTd DataLabel="User ID">@userCtx.UserId</MudTd>
+        <MudTd DataLabel="Role Name">@userCtx.RoleName</MudTd>
+        <MudTd>
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick="() => OpenDelete(userCtx)">Delete</MudButton>
+        </MudTd>
+    </RowTemplate>
+    </MudTable>
+
+</MudPaper>
+</Authorized>
+<NotAuthorized>
+    <MudText Typo="Typo.h6">You are not authorized to view this page.</MudText>
+</NotAuthorized>
+</AuthorizeView>
+
+
+    @code {
+    private List<UserRoleDto> users;
+    private string searchString = "";
+    private HttpClient httpClient = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(1);
+
+        httpClient = await httpClientFactory.CreateClientAsync();
+
+        users = await httpClient.GetFromJsonAsync<List<UserRoleDto>>("api/user/all");
+    }
+
+    private void OpenDelete(UserRoleDto user)
+    {
+        //DialogService.Show<DeleteUserModal>("Delete user", new Dictionary<string, object>() { { "user", user } });
+    }
+
+    private async Task OpenNew()
+    {
+        
+    }
+}

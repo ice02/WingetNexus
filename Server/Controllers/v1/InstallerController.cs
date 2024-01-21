@@ -16,7 +16,7 @@ namespace WingetNexus.Server.Controllers.v1
     [Route("api/v1/[controller]")]
     [ApiController]
     [ValidateAntiForgeryToken]
-    [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
+    [Authorize(Policy = "IsAuthorized", AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
     public class InstallerController : ControllerBase
     {
         private readonly WingetNexusContext _context;

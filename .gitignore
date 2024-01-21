@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Server/wingetnexus.db
+/Server/wingetnexus.db-shm
+/Server/wingetnexus.db-wal
+/Server/winget.db
+/Server/winget.db-shm
+/Server/winget.db-wal

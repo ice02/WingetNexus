@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using WingetNexus.Data;
 using WingetNexus.Data.DataStores;
 using WingetNexus.Server.Mappers;
+using WingetNexus.Server.Security;
 using WingetNexus.Shared.Models.Db;
 using WingetNexus.Shared.Models.Db.Objects;
 using WingetNexus.Shared.Models.Dtos;
@@ -13,8 +14,7 @@ namespace WingetNexus.Controllers.v1
     [Route("api/v1/[controller]")]
     [ApiController]
     [ValidateAntiForgeryToken]
-    [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
-    [Authorize(policy: "IsAuthorized")]
+    [Authorize(Policy = "IsAuthorized", AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
     public class PackagesController : ControllerBase
     {
         private readonly WingetNexusContext _context;

@@ -13,6 +13,7 @@ namespace WingetNexus.Server.Controllers.v1
 {
     [Route("api/v1/[controller]")]
     [ApiController]
+    [Authorize(Policy = "IsAuthorized", AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
     public class VersionsController : ControllerBase
     {
         private readonly WingetNexusContext _context;

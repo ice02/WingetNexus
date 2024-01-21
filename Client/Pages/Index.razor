@@ -2,8 +2,17 @@
 
 @attribute [Authorize]
 
-<PageTitle>Index</PageTitle>
+<PageTitle>Winget Nexus home page</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Hello, world!</MudText>
-<MudText Class="mb-8">Welcome to your new app, powered by MudBlazor!</MudText>
-<MudAlert Severity="Severity.Normal">You can find documentation and examples on our website here: <MudLink Href="https://mudblazor.com" Typo="Typo.body2" Color="Color.Inherit"><b>www.mudblazor.com</b></MudLink></MudAlert>
+<MudText Typo="Typo.h3" GutterBottom="true">Welcome</MudText>
+
+<MudText Class="mb-8">
+    Use the <a href="">Application</a> link on the left to add packages and versions.
+</MudText>
+
+<MudList>
+    <MudListItem>An <em>application</em>, such as notepad++.</MudListItem>
+    <MudListItem>A <em>version</em> is a specific release of an application, such as 1.2.3.4.</MudListItem>
+    <MudListItem>Every version has at least one <em>installer</em>.</MudListItem>
+</MudList>
+    
