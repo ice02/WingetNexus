@@ -29,16 +29,24 @@ namespace WingetNexus.Data.DataStores
             var installer = new Installer(installerForm.Architecture, installerForm.InstallerType, installerForm.InstallerPath,
                                                 installerForm.InstallerSha256, installerForm.Scope);
 
-            installer.Switches = new List<InstallerSwitch>()
-                    {
-                        new InstallerSwitch() { Parameter="Silent", Value="True" },
-                        new InstallerSwitch() { Parameter="InstallLocation", Value="" },
-                        new InstallerSwitch() { Parameter="SilentProgress", Value="True" },
-                        new InstallerSwitch() { Parameter="Interactive", Value="False" },
-                        new InstallerSwitch() { Parameter="Upgrade", Value="False" },
-                        new InstallerSwitch() { Parameter="Logfile", Value="" },
-                        new InstallerSwitch() { Parameter="Custom", Value="" }
-                    };
+            if (installer.Switches == null)
+                installer.Switches = new List<InstallerSwitch>();
+
+            foreach (var item in installerForm.Switches)
+            {
+                installer.Switches.Add(new InstallerSwitch() { Parameter = item.Parameter, Value = item.Value });
+            }
+
+            //installer.Switches = new List<InstallerSwitch>()
+            //        {
+            //            new InstallerSwitch() { Parameter="Silent", Value="True" },
+            //            new InstallerSwitch() { Parameter="InstallLocation", Value="" },
+            //            new InstallerSwitch() { Parameter="SilentProgress", Value="True" },
+            //            new InstallerSwitch() { Parameter="Interactive", Value="False" },
+            //            new InstallerSwitch() { Parameter="Upgrade", Value="False" },
+            //            new InstallerSwitch() { Parameter="Logfile", Value="" },
+            //            new InstallerSwitch() { Parameter="Custom", Value="" }
+            //        };
 
             if (installerForm.InstallerType == "zip")
             {

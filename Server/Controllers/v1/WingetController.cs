@@ -11,7 +11,7 @@ using WingetNexus.Shared.Models.Winget;
 namespace WingetNexus.Controllers.v1
 {
     /// <summary>
-    /// Api for winget client based on winget contract version 1.4
+    /// Api for winget client based on winget contract version 1.1
     /// </summary>
     [Route("api/v1/[controller]")]
     [ApiController]
@@ -52,7 +52,7 @@ namespace WingetNexus.Controllers.v1
                 Data = new
                 {
                     SourceIdentifier = _configuration["Reponame"],
-                    ServerSupportedVersions = new[] { "1.0.0", "1.1.0", "1.4.0" },
+                    ServerSupportedVersions = new[] { "1.0.0", "1.1.0" },
                     UnsupportedPackageMatchFields = new List<string>(),
                     RequiredPackageMatchFields = new List<string>(),
                     UnsupportedQueryParameters = new List<string>(),
@@ -273,7 +273,12 @@ namespace WingetNexus.Controllers.v1
             var packages = new List<Package>();
             if (keyword != null && match_type != null)
             {
-                var ctx_request = _context.Packages.Include(p => p.Versions).Include("Versions.Installers");
+                var ctx_request = _context.Packages
+                    .Include(p => p.Versions)
+                    .Include("Versions.Installers")
+                    .Include("Versions.Installers.Switches")
+                    .Include("Versions.Installers.NestedInstallerFiles");
+
                 if (match_type == "Exact")
                 {
                     var packages_query = ctx_request.Where(p => p.Identifier == keyword);
@@ -324,6 +329,8 @@ namespace WingetNexus.Controllers.v1
                     Versions = package.Versions.Where(p => p.Installers.Any()).Select(v => new SearchVersions()
                     {
                         PackageVersion = v.VersionCode,
+                        //Installers = v.Installers?.ToList(),
+                        //Channel = v.Channel
                     }).ToArray()
                 });
             }

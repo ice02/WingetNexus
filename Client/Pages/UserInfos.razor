@@ -10,6 +10,11 @@
     {
         <p>@claim.Type: @claim.Value</p>
     }
+
+    foreach (var role in user.FindAll("role"))
+    {
+        <p>Role: @role.Value</p>
+    }
 }
 
 @code {

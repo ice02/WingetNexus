@@ -106,177 +106,49 @@
                 <MudRadio Option="@("ARM64")">ARM 64</MudRadio>
             </MudRadioGroup>
         </div>
+
+        <div class="d-flex mt-4">
+            <MudSwitch T="bool" Label="Silent parameter" @bind-Value="isSilentVisible" />
+            <MudTextField T="string" Label="Silent parameter" Variant="Variant.Outlined" @bind-Value="silentParameter" 
+                Margin="Margin.Dense" Disabled="!isSilentVisible" Required="isSilentVisible" />
+        </div>
+        <div class="d-flex mt-4">
+            <MudSwitch T="bool" Label="Install location" @bind-Value="isLocationVisible" />
+            <MudTextField T="string" Label="Install location" Variant="Variant.Outlined" @bind-Value="installLocation"
+                Margin="Margin.Dense" Disabled="!isLocationVisible" Required="isLocationVisible" />
+        </div>
+        <div class="d-flex mt-4">
+            <MudSwitch T="bool" Label="Upgrade code" @bind-Value="isUpgradeVisible" />
+            <MudTextField T="string" Label="Upgrade code" Variant="Variant.Outlined" @bind-Value="upgradeCode"
+                Margin="Margin.Dense" Disabled="!isUpgradeVisible" Required="isUpgradeVisible" />
+        </div>
+        <div class="d-flex mt-4">
+            <MudSwitch T="bool" Label="Log files location" @bind-Value="isLogpathVisible" />
+            <MudTextField T="string" Label="Log files location" Variant="Variant.Outlined" @bind-Value="logFilesLocation"
+                Margin="Margin.Dense" Disabled="!isLogpathVisible" Required="isLogpathVisible" />
+        </div>
+        <div class="d-flex mt-4">
+            <MudSwitch T="bool" Label="Is silent progress" @bind-Value="isSilentProgressVisible" />
+        </div>
+        <div class="d-flex mt-4">
+            <MudSwitch T="bool" Label="Is interactive" @bind-Value="isInteractiveVisible" />
+        </div>
+        <div class="d-flex mt-4">
+            <MudSwitch T="bool" Label="Custom" @bind-Value="isCustomVisible" />
+            <MudTextField T="string" Label="Custom" Variant="Variant.Outlined" @bind-Value="customValue"
+                          Margin="Margin.Dense" Disabled="!isCustomVisible" Required="isCustomVisible" />
+        </div>
+
+            @*
+        new InstallerSwitch() { Parameter="Silent", Value="True" },
+        new InstallerSwitch() { Parameter="InstallLocation", Value="" },
+        new InstallerSwitch() { Parameter="SilentProgress", Value="True" },
+        new InstallerSwitch() { Parameter="Interactive", Value="False" },
+        new InstallerSwitch() { Parameter="Upgrade", Value="False" },
+        new InstallerSwitch() { Parameter="Logfile", Value="" },
+        new InstallerSwitch() { Parameter="Custom", Value="" }
+                *@
+        
         }
     
 </MudPaper>
-
-@code {
-    [Parameter] public InstallerDto InstallerModel { get; set; }
-
-    HttpClient httpClient = null;
-    string relativeFilePath = string.Empty;
-    string shortcutName = string.Empty;
-    string selectedValue
-    {
-        get { return InstallerModel != null ? InstallerModel.InstallerType : "msix"; }
-        set
-        {
-            InstallerModel.InstallerType = value;
-
-            if (InstallerModel.InstallerType == "zip")
-            {
-                InstallerModel.NestedInstallerFiles = new List<NestedInstallerFileDto>()
-                {
-                    new NestedInstallerFileDto()
-                    {
-                        PortableCommandAlias = shortcutName,
-                        RelativeFilePath = relativeFilePath,
-                    }
-                };
-            }
-            else
-            {
-                InstallerModel.NestedInstallerFiles = null;
-            }
-        }
-    }
-
-    // private async void onValueChanged(string value)
-    // {
-    //     InstallerModel.InstallerType = value;
-
-    //     if (InstallerModel.InstallerType == "zip")
-    //     {
-    //         InstallerModel.NestedInstallerFiles = new List<NestedInstallerFileDto>()
-    //         {
-    //             new NestedInstallerFileDto()
-    //             {
-    //                 PortableCommandAlias = string.Empty,
-    //                 RelativeFilePath = relativeFilePath
-    //             }
-    //         };
-    //     }
-    //     else
-    //     {
-    //         InstallerModel.NestedInstallerFiles = null;
-    //     }
-    // }
-
-    private int activeIndex 
-    { 
-        get 
-        { 
-            if (InstallerModel == null)
-                return 0;
-            return (InstallerModel.IsLocalPackage ? 0 : 1); 
-        } 
-        set 
-        { 
-            InstallerModel.IsLocalPackage = (value != 1); 
-        } 
-    }
-
-    protected async override Task OnInitializedAsync()
-    {
-        httpClient = await httpClientFactory.CreateClientAsync();
-
-        if (InstallerModel == null)
-        {
-            InstallerModel = new InstallerDto();
-            InstallerModel.Scope = "user";
-            InstallerModel.Architecture = "x64";
-        }
-        else
-        {
-            selectedValue = InstallerModel.InstallerType;
-            if (InstallerModel.NestedInstallerFiles != null && InstallerModel.NestedInstallerFiles.Count > 0 && InstallerModel.InstallerType == "zip")
-            {
-                relativeFilePath = InstallerModel.NestedInstallerFiles[0].RelativeFilePath;
-            }
-        }
-    }
-
-    IList<IBrowserFile> files = new List<IBrowserFile>();
-    private async void UploadFiles(IBrowserFile file)
-    {
-        files = new List<IBrowserFile>();
-        files.Add(file);
-
-        InstallerModel.InstallerType = GetInstallerTypeFromContentType(file.ContentType);
-        //TODO : check if file extension is valid
-        // if (string.IsNullOrEmpty(model.InstallerType))
-        // {
-        //     return;
-        // }
-
-        using var content = new MultipartFormDataContent();
-
-        var fileContent = new StreamContent(file.OpenReadStream(128 * 1024 * 1024)); // 128 Mo Max
-
-        var provider = new FileExtensionContentTypeProvider();
-        string contentType;
-        if (!provider.TryGetContentType(file.Name, out contentType))
-        {
-            contentType = "application/octet-stream";
-        }
-
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-
-        content.Add(
-            content: fileContent,
-            name: "\"files\"",
-            fileName: file.Name);
-
-        var result = await httpClient.PostAsync($"api/v1/files", content);
-        if (result.IsSuccessStatusCode)
-        {
-            var resultContent = await result.Content.ReadFromJsonAsync<IList<UploadResult>>();
-            if (resultContent == null || resultContent.Count == 0)
-            {
-                snackBar.Add("Error during upload", Severity.Error);
-            }
-            else
-            {
-                foreach (var item in resultContent)
-                {
-                    if (item.ErrorCode > 0)
-                    {
-                        // TODO: map error code on a message
-                        snackBar.Add(item.ErrorCode.ToString(), Severity.Error);
-                    }
-                    else
-                    {
-                        InstallerModel.InstallerPath = item.FileName;
-                        InstallerModel.InstallerSha256 = item.Checksum;
-                    }
-                }
-            }
-        }
-        else
-        {
-            snackBar.Add(result.ReasonPhrase, Severity.Error);
-        }
-    }
-
-    private bool CheckInstallerType => InstallerModel.InstallerType != "zip";
-
-    //Based on content type value, give the installer type
-    private string GetInstallerTypeFromContentType(string contentType)
-    {
-        var installerType = "";
-        switch (contentType)
-        {
-            case "application/zip":
-                installerType = "zip";
-                break;
-            case "application/msi":
-                installerType = "msi";
-                break;
-            case "application/msix":
-                installerType = "msix";
-                break;
-        }
-
-        return installerType;
-    }
-}

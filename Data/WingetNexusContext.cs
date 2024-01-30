@@ -77,10 +77,5 @@ namespace WingetNexus.Data
         public DbSet<InstallerSwitch> InstallerSwitches { get; set; }
         public DbSet<NestedInstallerFile> NestedInstallerFiles { get; set; }
         public DbSet<Locale> Locales { get; set; }
-
-        public DbSet<Register> Registration { get; set; } = default!;
-        public DbSet<TokenInfo> TokenInfo { get; set; } = default!;
-        public DbSet<UserRole> UserRoles { get; set; } = default!;
     }
-    
 }

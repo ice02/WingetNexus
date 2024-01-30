@@ -31,6 +31,8 @@ namespace WingetNexus.Data
         //public DbSet<Register> Registration { get; set; } = default!;
         //public DbSet<TokenInfo> TokenInfo { get; set; } = default!;
         public DbSet<UserRole> UserRoles { get; set; } = default!;
+        public DbSet<Register> Registration { get; set; } = default!;
+        public DbSet<TokenInfo> TokenInfo { get; set; } = default!;
     }
 
     //public class ApiAuthorizationDbContext<ApplicationUser> : IdentityDbContext<ApplicationUser>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WingetNexus.Shared.Models.Db;
 
 namespace WingetNexus.Shared.Models.Winget
 {
@@ -44,10 +45,11 @@ namespace WingetNexus.Shared.Models.Winget
         //}
 
         public string PackageVersion { get; set; }
-        public string Channel { get; set; }
-        public string[] ProductCodes { get; set; }
-        public string[] AppsAndFeaturesEntryVersions { get; set; }
-        public string[] UpgradeCodes { get; set; }
+        //public List<Installer> Installers { get; set; }
+        //public string Channel { get; set; }
+        //public string[] ProductCodes { get; set; }
+        //public string[] AppsAndFeaturesEntryVersions { get; set; }
+        //public string[] UpgradeCodes { get; set; }
 
 
     }

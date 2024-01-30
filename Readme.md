@@ -1,8 +1,7 @@
-﻿Version part
-
-Schedule upgrades
-
-Development part
+﻿  
+| Version | Changes | Date |
+| --- | --- | --- |
+| pre-1.0 | Initial version based on Winget manifest 1.4 | 2024-01-21 |
 
 <!-- PROJECT LOGO -->
 <br />
@@ -14,7 +13,6 @@ Development part
 
 Winget Nexus is a self-hosted winget package source. 
 It's done with Dotnet core and can run on Linux, Windows, in Docker, locally and in any cloud.
-It is currently in [pre-1.0](https://semver.org/#spec-item-4) development so configuration options, output, database and behavior may change at any time, I'm trying my best though to avoid breaking things.
 
 
 ## 🚀 Features

@@ -64,7 +64,9 @@ public class UserController : ControllerBase
                                                   .ToList();
             userInfo.Claims = claims;
 
-            //userInfo.Roles = 
+            var roles = _applicationDatastore.GetUserAcl(claims.FirstOrDefault(p => p.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress").Value);
+
+            userInfo.Roles = roles;
         }
 
         return userInfo;
