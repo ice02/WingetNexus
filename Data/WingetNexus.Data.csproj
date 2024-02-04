@@ -7,7 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EFCoreSecondLevelCacheInterceptor" Version="4.1.2" />
+    <PackageReference Include="EasyCaching.Redis" Version="1.9.2" />
+    <PackageReference Include="EasyCaching.Serialization.MessagePack" Version="1.9.2" />
+    <PackageReference Include="EFCoreSecondLevelCacheInterceptor" Version="4.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.1">
       <PrivateAssets>all</PrivateAssets>
