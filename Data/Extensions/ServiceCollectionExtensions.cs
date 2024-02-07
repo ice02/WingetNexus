@@ -66,14 +66,51 @@ namespace WingetNexus.Data.Extensions
                     )
                     .AddInterceptors(serviceProvider.GetRequiredService<SecondLevelCacheInterceptor>()));
 
-            services.AddEFSecondLevelCache(options =>
+            if (allowCache)
             {
-                if (allowCache)
+                const string providerName1 = "Redis1";
+
+                services.AddEFSecondLevelCache(options =>
+                        options.UseEasyCachingCoreProvider(providerName1, isHybridCache: false)
+                        .DisableLogging(true)
+                        .UseCacheKeyPrefix("EF_")
+                        // Fallback on db if the caching provider fails (for example, if Redis is down).
+                        .UseDbCallsIfCachingProviderIsDown(TimeSpan.FromMinutes(1))
+                );
+
+
+                // More info: https://easycaching.readthedocs.io/en/latest/Redis/
+                services.AddEasyCaching(option =>
                 {
-                    options.UseMemoryCacheProvider().DisableLogging(true);
-                    options.CacheAllQueries(CacheExpirationMode.Sliding, TimeSpan.FromMinutes(30));
-                }
-            });
+                    option.UseRedis(config =>
+                    {
+                        config.DBConfig.AllowAdmin = true;
+                        config.DBConfig.SyncTimeout = 10000;
+                        config.DBConfig.AsyncTimeout = 10000;
+                        config.DBConfig.Endpoints.Add(new EasyCaching.Core.Configurations.ServerEndPoint("127.0.0.1", 6379));
+                        config.EnableLogging = true;
+                        config.SerializerName = "Pack";
+                        config.DBConfig.ConnectionTimeout = 10000;
+                    }, providerName1)
+                    .WithMessagePack(so =>
+                    {
+                        so.EnableCustomResolver = true;
+                        so.CustomResolvers = CompositeResolver.Create(
+                            new IMessagePackFormatter[]
+                            {
+                            DbNullFormatter.Instance, // This is necessary for the null values
+                            },
+                            new IFormatterResolver[]
+                            {
+                            NativeDateTimeResolver.Instance,
+                            ContractlessStandardResolver.Instance,
+                            StandardResolverAllowPrivate.Instance,
+                            }
+                        );
+                    },
+                    "Pack");
+                });
+            }
             return services;
         }
 
