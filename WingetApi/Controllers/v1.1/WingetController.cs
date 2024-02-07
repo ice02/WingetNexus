@@ -63,6 +63,108 @@ namespace WingetNexus.WingetApi.Controllers.v1
         }
 
         [HttpGet("packageManifests/{identifier}")]
+        public async Task<IActionResult> GetPackageManifestBak(string identifier)
+        {
+            //var package = await _context.Packages
+            //    .Include(p => p.Versions)
+            //        .ThenInclude(v => v.Installers)
+            //            .ThenInclude(i => i.NestedInstallerFiles)
+
+            //    .FirstOrDefaultAsync(p => p.Identifier == identifier);
+
+            var package = _context.Packages
+                            .Include(p => p.Versions)
+                            .Include("Versions.Installers")
+                            .Include("Versions.Installers.NestedInstallerFiles")
+                            .Include("Versions.Installers.Switches")
+                            .FirstOrDefault(p => p.Identifier == identifier);
+
+            if (package == null)
+            {
+                return NoContent();
+            }
+
+            var result = new Dictionary<string, object>
+            {
+                { "PackageIdentifier", package.Identifier }
+            };
+
+            var versions = new List<Dictionary<string, object>>();
+
+            foreach (var version in package.Versions)
+            {
+                var installers = new List<Dictionary<string, object>>();
+
+                foreach (var installer in version.Installers)
+                {
+                    var installerJson = new Dictionary<string, object>
+                    {
+                        { "Architecture", installer.Architecture },
+                        { "InstallerType", installer.InstallerType },
+                        { "InstallerUrl", Url.Action("GetInstallerFile", new { id = installer.Id }, Request.Scheme) },
+                        { "InstallerSha256", installer.InstallerSha256 },
+                        { "Scope", installer.Scope }
+                    };
+
+                    if (!string.IsNullOrEmpty(installer.NestedInstaller))
+                    {
+                        installerJson["NestedInstallerFiles"] = new List<Dictionary<string, object>>
+                        {
+                            new Dictionary<string, object> { { "RelativeFilePath", installer.NestedInstaller } }
+                        };
+                    }
+
+                    if (!string.IsNullOrEmpty(installer.NestedInstallerType))
+                    {
+                        installerJson["NestedInstallerType"] = installer.NestedInstallerType;
+                    }
+
+                    var switches = new Dictionary<string, string>
+                    {
+                        { "Silent", installer.Switches.FirstOrDefault(p=>p.Parameter == "Silent")?.Value },
+                        { "SilentWithProgress", installer.Switches.FirstOrDefault(p=>p.Parameter == "SilentWithProgress")?.Value },
+                        { "Interactive", installer.Switches.FirstOrDefault(p=>p.Parameter == "Interactive")?.Value },
+                        { "InstallLocation", installer.Switches.FirstOrDefault(p=>p.Parameter == "InstallLocation")?.Value },
+                        { "Log", installer.Switches.FirstOrDefault(p=>p.Parameter == "Log")?.Value },
+                        { "Upgrade", installer.Switches.FirstOrDefault(p=>p.Parameter == "Upgrade")?.Value },
+                        { "Custom", installer.Switches.FirstOrDefault(p=>p.Parameter == "Custom")?.Value }
+                    };
+
+                    var nonemptySwitches = switches.Where(s => !string.IsNullOrEmpty(s.Value)).ToDictionary(s => s.Key, s => s.Value);
+
+                    if (nonemptySwitches.Any())
+                    {
+                        installerJson["InstallerSwitches"] = nonemptySwitches;
+                    }
+
+                    installers.Add(installerJson);
+                }
+
+                var versionJson = new Dictionary<string, object>
+                {
+                    { "PackageVersion", version.VersionCode },
+                    { "DefaultLocale", new Dictionary<string, string>
+                        {
+                            { "PackageLocale", "en-us" },
+                            { "Publisher", package.Publisher },
+                            { "PackageName", package.Name },
+                            { "ShortDescription", version.ShortDescription }
+                        }
+                    },
+                    { "Installers", installers }
+                };
+
+                versions.Add(versionJson);
+            }
+
+            result["Versions"] = versions;
+
+            return Ok(result);
+        }
+
+
+
+        [HttpGet("packageManifests/{identifier}")]
         public IActionResult GetPackageManifest(string identifier)
         {
             if (_featureManager.IsEnabledAsync("RequireAuthentication").Result)
@@ -130,11 +232,15 @@ namespace WingetNexus.WingetApi.Controllers.v1
                     // If installer is for both user and machine, create two entries for each scope (user and machine) but use it with download url
                     foreach (var scope in new[] { "user", "machine" })
                     {
+                        var installerPath = installer.InstallerPath;
+                        if (installer.IsLocalPackage)
+                            installerPath = $"{_configuration["InstallerPath"]}/api/v1/Files/{installer.InstallerPath}";
+
                         var data = new ManifestInstaller()
                         {
                             Architecture = installer.Architecture,
                             InstallerType = installer.InstallerType,
-                            InstallerUrl = "",//UrlHelpers.UrlFor("Download", "Api", Identifier, version.VersionCode, installer.Architecture, installer.Scope, "")),
+                            InstallerUrl = installerPath,
                             InstallerSha256 = installer.InstallerSha256,
                             Scope = scope,
                             InstallerSwitches = GetInstallerSwitches(installer)
@@ -158,7 +264,7 @@ namespace WingetNexus.WingetApi.Controllers.v1
                     {
                         Architecture = installer.Architecture,
                         InstallerType = installer.InstallerType,
-                        InstallerUrl = installerPath,//UrlHelpers.UrlFor("Download", "Api", Identifier, version.VersionCode, installer.Architecture, installer.Scope, "")),
+                        InstallerUrl = installerPath,
                         InstallerSha256 = installer.InstallerSha256,
                         Scope = installer.Scope,
                         InstallerSwitches = GetInstallerSwitches(installer)
@@ -179,11 +285,6 @@ namespace WingetNexus.WingetApi.Controllers.v1
 
         private ManifestNestedInstallerFile[] GetNestedInstallerData(Installer installer)
         {
-            if (_featureManager.IsEnabledAsync("RequireAuthentication").Result)
-            {
-                CertificateValidationHelper.ValidateAuthentication(Request, _logger);
-            }
-
             var nestedInstallerData = new List<ManifestNestedInstallerFile>();
             if (installer != null && installer.NestedInstallerFiles != null)
             {
@@ -200,25 +301,19 @@ namespace WingetNexus.WingetApi.Controllers.v1
             return nestedInstallerData.ToArray();
         }
 
-        private dynamic[] GetInstallerSwitches(Installer installer)
+        private Dictionary<string, string> GetInstallerSwitches(Installer installer)
         {
-            if (_featureManager.IsEnabledAsync("RequireAuthentication").Result)
-            {
-                CertificateValidationHelper.ValidateAuthentication(Request, _logger);
-            }
-
-            var switches = new List<dynamic>();
+            Dictionary<string, string> switches = new Dictionary<string, string>();
             if (installer.Switches == null)
             {
                 return null;
             }
-
-            //foreach (var switchObj in installer.Switches)
-            //{
-            //    switches.Add(switchObj.Parameter, switchObj.Value);
-            //}
-
-            return switches.ToArray();
+           
+            foreach (var sw in installer.Switches)
+    {
+                switches[sw.Parameter] = sw.Value;
+            }
+            return switches;
         }
 
         [HttpPost("manifestSearch")]

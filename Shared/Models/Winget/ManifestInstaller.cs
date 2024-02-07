@@ -13,7 +13,7 @@ namespace WingetNexus.Shared.Models.Winget
         public string InstallerUrl { get; set; }
         public string InstallerSha256 { get; set; }
         public string Scope { get; set; }
-        public dynamic[] InstallerSwitches { get; set; }
+        public Dictionary<string, string> InstallerSwitches { get; set; }
         public string? NestedInstallerType { get; set; }
         public ManifestNestedInstallerFile[]? NestedInstallerFiles { get; set; }
     }
