@@ -62,106 +62,105 @@ namespace WingetNexus.WingetApi.Controllers.v1
             });
         }
 
-        [HttpGet("packageManifests/{identifier}")]
-        public async Task<IActionResult> GetPackageManifestBak(string identifier)
-        {
-            //var package = await _context.Packages
-            //    .Include(p => p.Versions)
-            //        .ThenInclude(v => v.Installers)
-            //            .ThenInclude(i => i.NestedInstallerFiles)
+        //[HttpGet("packageManifests/{identifier}")]
+        //public async Task<IActionResult> GetPackageManifestBak(string identifier)
+        //{
+        //    //var package = await _context.Packages
+        //    //    .Include(p => p.Versions)
+        //    //        .ThenInclude(v => v.Installers)
+        //    //            .ThenInclude(i => i.NestedInstallerFiles)
 
-            //    .FirstOrDefaultAsync(p => p.Identifier == identifier);
+        //    //    .FirstOrDefaultAsync(p => p.Identifier == identifier);
 
-            var package = _context.Packages
-                            .Include(p => p.Versions)
-                            .Include("Versions.Installers")
-                            .Include("Versions.Installers.NestedInstallerFiles")
-                            .Include("Versions.Installers.Switches")
-                            .FirstOrDefault(p => p.Identifier == identifier);
+        //    var package = _context.Packages
+        //                    .Include(p => p.Versions)
+        //                    .Include("Versions.Installers")
+        //                    .Include("Versions.Installers.NestedInstallerFiles")
+        //                    .Include("Versions.Installers.Switches")
+        //                    .FirstOrDefault(p => p.Identifier == identifier);
 
-            if (package == null)
-            {
-                return NoContent();
-            }
+        //    if (package == null)
+        //    {
+        //        return NoContent();
+        //    }
 
-            var result = new Dictionary<string, object>
-            {
-                { "PackageIdentifier", package.Identifier }
-            };
+        //    var result = new Dictionary<string, object>
+        //    {
+        //        { "PackageIdentifier", package.Identifier }
+        //    };
 
-            var versions = new List<Dictionary<string, object>>();
+        //    var versions = new List<Dictionary<string, object>>();
 
-            foreach (var version in package.Versions)
-            {
-                var installers = new List<Dictionary<string, object>>();
+        //    foreach (var version in package.Versions)
+        //    {
+        //        var installers = new List<Dictionary<string, object>>();
 
-                foreach (var installer in version.Installers)
-                {
-                    var installerJson = new Dictionary<string, object>
-                    {
-                        { "Architecture", installer.Architecture },
-                        { "InstallerType", installer.InstallerType },
-                        { "InstallerUrl", Url.Action("GetInstallerFile", new { id = installer.Id }, Request.Scheme) },
-                        { "InstallerSha256", installer.InstallerSha256 },
-                        { "Scope", installer.Scope }
-                    };
+        //        foreach (var installer in version.Installers)
+        //        {
+        //            var installerJson = new Dictionary<string, object>
+        //            {
+        //                { "Architecture", installer.Architecture },
+        //                { "InstallerType", installer.InstallerType },
+        //                { "InstallerUrl", Url.Action("GetInstallerFile", new { id = installer.Id }, Request.Scheme) },
+        //                { "InstallerSha256", installer.InstallerSha256 },
+        //                { "Scope", installer.Scope }
+        //            };
 
-                    if (!string.IsNullOrEmpty(installer.NestedInstaller))
-                    {
-                        installerJson["NestedInstallerFiles"] = new List<Dictionary<string, object>>
-                        {
-                            new Dictionary<string, object> { { "RelativeFilePath", installer.NestedInstaller } }
-                        };
-                    }
+        //            if (!string.IsNullOrEmpty(installer.NestedInstaller))
+        //            {
+        //                installerJson["NestedInstallerFiles"] = new List<Dictionary<string, object>>
+        //                {
+        //                    new Dictionary<string, object> { { "RelativeFilePath", installer.NestedInstaller } }
+        //                };
+        //            }
 
-                    if (!string.IsNullOrEmpty(installer.NestedInstallerType))
-                    {
-                        installerJson["NestedInstallerType"] = installer.NestedInstallerType;
-                    }
+        //            if (!string.IsNullOrEmpty(installer.NestedInstallerType))
+        //            {
+        //                installerJson["NestedInstallerType"] = installer.NestedInstallerType;
+        //            }
 
-                    var switches = new Dictionary<string, string>
-                    {
-                        { "Silent", installer.Switches.FirstOrDefault(p=>p.Parameter == "Silent")?.Value },
-                        { "SilentWithProgress", installer.Switches.FirstOrDefault(p=>p.Parameter == "SilentWithProgress")?.Value },
-                        { "Interactive", installer.Switches.FirstOrDefault(p=>p.Parameter == "Interactive")?.Value },
-                        { "InstallLocation", installer.Switches.FirstOrDefault(p=>p.Parameter == "InstallLocation")?.Value },
-                        { "Log", installer.Switches.FirstOrDefault(p=>p.Parameter == "Log")?.Value },
-                        { "Upgrade", installer.Switches.FirstOrDefault(p=>p.Parameter == "Upgrade")?.Value },
-                        { "Custom", installer.Switches.FirstOrDefault(p=>p.Parameter == "Custom")?.Value }
-                    };
+        //            var switches = new Dictionary<string, string>
+        //            {
+        //                { "Silent", installer.Switches.FirstOrDefault(p=>p.Parameter == "Silent")?.Value },
+        //                { "SilentWithProgress", installer.Switches.FirstOrDefault(p=>p.Parameter == "SilentWithProgress")?.Value },
+        //                { "Interactive", installer.Switches.FirstOrDefault(p=>p.Parameter == "Interactive")?.Value },
+        //                { "InstallLocation", installer.Switches.FirstOrDefault(p=>p.Parameter == "InstallLocation")?.Value },
+        //                { "Log", installer.Switches.FirstOrDefault(p=>p.Parameter == "Log")?.Value },
+        //                { "Upgrade", installer.Switches.FirstOrDefault(p=>p.Parameter == "Upgrade")?.Value },
+        //                { "Custom", installer.Switches.FirstOrDefault(p=>p.Parameter == "Custom")?.Value }
+        //            };
 
-                    var nonemptySwitches = switches.Where(s => !string.IsNullOrEmpty(s.Value)).ToDictionary(s => s.Key, s => s.Value);
+        //            var nonemptySwitches = switches.Where(s => !string.IsNullOrEmpty(s.Value)).ToDictionary(s => s.Key, s => s.Value);
 
-                    if (nonemptySwitches.Any())
-                    {
-                        installerJson["InstallerSwitches"] = nonemptySwitches;
-                    }
+        //            if (nonemptySwitches.Any())
+        //            {
+        //                installerJson["InstallerSwitches"] = nonemptySwitches;
+        //            }
 
-                    installers.Add(installerJson);
-                }
+        //            installers.Add(installerJson);
+        //        }
 
-                var versionJson = new Dictionary<string, object>
-                {
-                    { "PackageVersion", version.VersionCode },
-                    { "DefaultLocale", new Dictionary<string, string>
-                        {
-                            { "PackageLocale", "en-us" },
-                            { "Publisher", package.Publisher },
-                            { "PackageName", package.Name },
-                            { "ShortDescription", version.ShortDescription }
-                        }
-                    },
-                    { "Installers", installers }
-                };
+        //        var versionJson = new Dictionary<string, object>
+        //        {
+        //            { "PackageVersion", version.VersionCode },
+        //            { "DefaultLocale", new Dictionary<string, string>
+        //                {
+        //                    { "PackageLocale", "en-us" },
+        //                    { "Publisher", package.Publisher },
+        //                    { "PackageName", package.Name },
+        //                    { "ShortDescription", version.ShortDescription }
+        //                }
+        //            },
+        //            { "Installers", installers }
+        //        };
 
-                versions.Add(versionJson);
-            }
+        //        versions.Add(versionJson);
+        //    }
 
-            result["Versions"] = versions;
+        //    result["Versions"] = versions;
 
-            return Ok(result);
-        }
-
+        //    return Ok(result);
+        //}
 
 
         [HttpGet("packageManifests/{identifier}")]
@@ -210,7 +209,7 @@ namespace WingetNexus.WingetApi.Controllers.v1
                 }
             }
 
-            var output0 = package.GenerateOutput();
+            //var output0 = package.GenerateOutput();
             var output = new { Data = new { PackageIdentifier = package.Identifier, Versions = versionData } };
 
             return Ok(output);
