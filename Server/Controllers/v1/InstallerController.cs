@@ -254,6 +254,11 @@ namespace WingetNexus.Server.Controllers.v1
                     hasValidationErrors = true;
                     validationErrors += "Installer scope is missing";
                 }
+                if (installerForm.InstallerType == "zip" && (installerForm.NestedInstallerFiles == null || installerForm.NestedInstallerFiles.Count == 0))
+                {
+                    hasValidationErrors = true;
+                    validationErrors += "Nested installer files are missing";
+                }
             }
         }
 

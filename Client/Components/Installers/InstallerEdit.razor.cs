@@ -103,8 +103,52 @@ namespace WingetNexus.Client.Components.Installers
         }
 
         HttpClient httpClient = null;
-        string relativeFilePath = string.Empty;
-        string shortcutName = string.Empty;
+        string relativeFilePath
+        {
+            get
+            {
+                return (InstallerModel != null && InstallerModel.NestedInstallerFiles != null && InstallerModel.NestedInstallerFiles.Count > 0)
+                                       ? InstallerModel.NestedInstallerFiles[0].RelativeFilePath
+                                                          : string.Empty;
+            }
+            set
+            {
+                if (InstallerModel.NestedInstallerFiles == null)
+                    InstallerModel.NestedInstallerFiles = new List<NestedInstallerFileDto>()
+                    {
+                        new NestedInstallerFileDto()
+                        {
+                            PortableCommandAlias = shortcutName,
+                            RelativeFilePath = value
+                        }
+                    };
+                else
+                    InstallerModel.NestedInstallerFiles[0].RelativeFilePath = value;
+            }
+        }
+        string shortcutName
+        {             get
+            {
+                return (InstallerModel != null && InstallerModel.NestedInstallerFiles != null && InstallerModel.NestedInstallerFiles.Count > 0)
+                                       ? InstallerModel.NestedInstallerFiles[0].PortableCommandAlias
+                                                          : string.Empty;
+            }
+            set
+            {
+                if (InstallerModel.NestedInstallerFiles == null)
+                    InstallerModel.NestedInstallerFiles = new List<NestedInstallerFileDto>()
+                    {
+                        new NestedInstallerFileDto()
+                        {
+                            PortableCommandAlias = value,
+                            RelativeFilePath = relativeFilePath
+                        }
+                    };
+                else
+                    InstallerModel.NestedInstallerFiles[0].PortableCommandAlias = value;
+            }
+        }
+
         string selectedValue
         {
             get { return InstallerModel != null ? InstallerModel.InstallerType : "msix"; }

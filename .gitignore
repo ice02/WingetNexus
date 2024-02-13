@@ -368,3 +368,4 @@ FodyWeavers.xsd
 /Server/winget.db-shm
 /Server/winget.db-wal
 /WingetApi/winget.db
+/Data/DB
