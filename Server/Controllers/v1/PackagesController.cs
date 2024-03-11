@@ -53,6 +53,99 @@ namespace WingetNexus.Controllers.v1
         }
 
         /// <summary>
+        /// Get all packages with pagination
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
+        [HttpGet("page/{page:int}/size/{pageSize:int}")]
+        public async Task<ActionResult<IQueryable<PackageDto>>> Get(int page, int pageSize)
+        {
+            var packages = _context.Packages
+                .Include(p => p.Versions)
+                .AsQueryable();
+
+            var dto = PackageMapper.ProjectToDto(packages)
+                .Skip(page * pageSize)
+                .Take(pageSize);
+
+            var packageCnt = _context.Packages.Count();
+
+            Response.Headers.Add("X-Total-Count", packageCnt.ToString());
+
+            return Ok(dto);
+        }
+
+        /// <summary>
+        /// Get all packages with pagination and search term
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="searchTerm"></param>
+        /// <returns></returns>
+        [HttpGet("page/{page:int}/size/{pageSize:int}/search/{searchTerm}")]
+        public async Task<ActionResult<IQueryable<PackageDto>>> GetWithSearch(int page, int pageSize, string searchTerm)
+        {
+            var packages = _context.Packages
+                .Include(p => p.Versions)
+                .AsQueryable();
+
+            var dto = PackageMapper.ProjectToDto(packages)
+                .Where(p => p.Name.Contains(searchTerm) || p.Publisher.Contains(searchTerm) || p.Identifier.Contains(searchTerm))
+                .Skip(page * pageSize)
+                .Take(pageSize);
+
+            var packageCnt = _context.Packages.Count();
+
+            Response.Headers.Add("X-Total-Count", packageCnt.ToString());
+
+            return Ok(dto);
+        }
+
+        // get all package count based on a filter
+        [HttpGet("count")]
+        public async Task<ActionResult<int>> GetCount()
+        {
+            var packageCnt = _context.Packages.Count();
+
+            return Ok(packageCnt);
+        }
+
+        /// <summary>
+        /// Get all packages with pagination and order by fields
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="orderBy"></param>
+        /// <returns></returns>
+        [HttpGet("page/{page:int}/{pageSize:int}/orderby/{orderBy}")]
+        public async Task<ActionResult<IQueryable<PackageDto>>> GetOrderBy(int page, int pageSize, string orderBy)
+        {
+            var packages = _context.Packages
+                .Include(p => p.Versions)
+                .AsQueryable();
+
+            var dto = PackageMapper.ProjectToDto(packages)
+                .Skip(page * pageSize)
+                .Take(pageSize);
+
+            switch(orderBy)
+            {
+                case "name":
+                    dto = dto.OrderBy(p => p.Name);
+                    break;
+                case "publisher":
+                    dto = dto.OrderBy(p => p.Publisher);
+                    break;
+                default:
+                    dto = dto.OrderBy(p => p.Name);
+                    break;
+            }
+
+            return Ok(dto);
+        }
+
+        /// <summary>
         /// Get full package details by identifier
         /// </summary>
         /// <param name="id"></param>

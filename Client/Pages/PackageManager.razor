@@ -25,47 +25,64 @@
     </MudToolBar>
 </MudPaper>
 
-@if (noPackage)
+@* @if (noPackage)
 {
     <MudText Class="mt-1">No package found</MudText>
 }
 else
-{
+{ *@
+
+    <MudDataGrid Elevation="25" Class="ma-4" Loading=@isLoading FixedHeader="true" ServerData="LoadGridData" T="PackageDto" @ref="_dataGrid" >
+        <NoRecordsContent>
+            <MudText Class="mt-1">No application found</MudText>
+        </NoRecordsContent>
+        <ToolBarContent>
+                <MudTextField @bind-Value="_requestDto.SearchTerm" Placeholder="Search for applications..." Adornment="Adornment.Start" Immediate="true"
+                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                <MudIconButton Size="@Size.Small" Color="Color.Primary" Icon="@Icons.Material.Outlined.Search" OnClick="@Search" />
+            
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.Publisher" />
+            <PropertyColumn Property="x => x.Name" />
+            <PropertyColumn Property="x => x.Identifier" />
+            <PropertyColumn Property="x => x.Versions" Title="Latest version">
+                <CellTemplate>
+                    @context.Item.Versions.OrderByDescending(p => p.DateAdded).FirstOrDefault()?.VersionCode
+                </CellTemplate>
+            </PropertyColumn>
+            <TemplateColumn CellClass="d-flex justify-end">
+                <CellTemplate>
+                    <MudIconButton Size="@Size.Small" Color="Color.Primary" Icon="@Icons.Material.Outlined.Edit" @onclick="@(()=>OpenDialogUpdate(@context.Item))" />
+                    <MudIconButton Size="@Size.Small" Color="Color.Secondary" Icon="@Icons.Material.Outlined.Delete" @onclick="@(()=>Delete(@context.Item.Identifier))" />
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="PackageDto" />
+        </PagerContent>
+    </MudDataGrid>
     
-<MudTable Elevation="25" Class="ma-4" Items="@packages" T="PackageDto" Filter="new Func<PackageDto, bool>(Search)" Loading="@isLoading"
-          FixedHeader="true">
-    <ToolBarContent>
-        <MudTextField @bind-Value="searchString" Placeholder="Search for applications..." Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-    </ToolBarContent>
-    <HeaderContent>
-        @* <MudTh></MudTh> *@
-        <MudTh>Publisher</MudTh>
-        <MudTh>Name</MudTh>
-        <MudTh>Identifier</MudTh>
-        <MudTh>Latest Version</MudTh>
-        @* <MudTh>Download count</MudTh> *@
-        <MudTh>Actions</MudTh>
-    </HeaderContent>
-
-    <RowTemplate >
-        @* <MudTd><MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => ShowBtnPress(context.Id))">@((context.ShowDetails == true) ? "Hide" : "Show") Sow versions</MudButton></MudTd> *@
-        <MudTd DataLabel="Publisher">@context.Publisher</MudTd>
-            <MudTd DataLabel="Name">@context.Name</MudTd>
-            <MudTd DataLabel="Identifier">@context.Identifier</MudTd>
-            <MudTd DataLabel="Latest version">@context.Versions.OrderByDescending(p => p.DateAdded).FirstOrDefault()?.VersionCode</MudTd>
-            @* <MudTd DataLabel="Download count">@context.DownloadCount</MudTd> *@
-            <MudTd DataLabel="Actions">
-                <MudFab @onclick="@(()=>OpenDialogUpdate(@context))" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" Size="Size.Small" IconSize="Size.Small" />
-                <MudFab @onclick="@(()=>Delete(@context.Identifier))" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Delete" Size="Size.Small" IconSize="Size.Small" />
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-
-}
+@* } *@
     
 
 @code {
+
+    public class GridDataRequestDto
+    {
+        public string? SearchTerm { get; set; } = null;
+        public int Page { get; set; } = 0; // The page number for the data we're requesting
+        public int PageSize { get; set; } = 10; // The number of items per page
+    }
+
+    public class PackageListDto
+    {
+        public IEnumerable<PackageDto> Items { get; set; }
+        public int ItemTotalCount { get; set; } = 0; // The total count of items before paging
+    }
+
+    private MudDataGrid<PackageDto>? _dataGrid;
+
     private string searchString = "";
     private IEnumerable<PackageDto> packages = new List<PackageDto>();
     private bool isLoading = false;
@@ -73,16 +90,104 @@ else
 
     HttpClient client = null;
 
+    private GridDataRequestDto _requestDto = new();
+
     protected override async Task OnInitializedAsync()
     {
         await Task.Delay(1);
 
-        client = await httpClientFactory.CreateClientAsync();
+        if (client == null)
+        {
+            client = await httpClientFactory.CreateClientAsync();
+        }
 
-        await GetPackages();
+        //await GetPackages();
     }
 
-    //TODO: add pagination
+    private async Task<GridData<PackageDto>> LoadGridData(GridState<PackageDto> state)
+    {
+        _requestDto.Page = state.Page;
+        _requestDto.PageSize = state.PageSize;
+
+        PackageListDto apiResponse = await GetPackagesFiltered(_requestDto);
+        if (apiResponse == null || apiResponse.Items == null)
+        {
+            return new GridData<PackageDto>();
+        }
+
+        GridData<PackageDto> data = new()
+            {
+                Items = apiResponse.Items,
+                TotalItems = apiResponse.ItemTotalCount
+            };
+
+        StateHasChanged();
+
+        return data;
+    }
+
+    private async Task Search()
+    {
+        if (_dataGrid is not null)
+        {
+            await _dataGrid!.ReloadServerData();
+        }
+    }
+
+    private async Task<PackageListDto> GetPackagesFiltered(GridDataRequestDto request)
+    {
+        isLoading = true;
+        StateHasChanged();
+        var result = new PackageListDto();
+
+        try
+        {
+            using (client = await httpClientFactory.CreateClientAsync())
+            {
+                HttpResponseMessage? res = null;
+
+                if (string.IsNullOrEmpty(request.SearchTerm))
+                {
+                    res = await client.GetAsync($"api/v1/packages/page/{request.Page}/size/{request.PageSize}");
+                }
+                else
+                {
+                    res = await client.GetAsync($"api/v1/packages/page/{request.Page}/size/{request.PageSize}/search/{request.SearchTerm}");
+                }
+                
+                if (!res.IsSuccessStatusCode)
+                {
+                    snackBar.Add(res.ReasonPhrase, Severity.Error);
+                }
+                else
+                {
+
+                    result.Items = await res?.Content?.ReadFromJsonAsync<IEnumerable<PackageDto>>();
+                    result.ItemTotalCount = int.Parse(res.Headers.GetValues("X-Total-Count").FirstOrDefault());
+                    if (result.Items == null || result.Items.Count() == 0)
+                    {
+                        noPackage = true;
+                    }
+                    else
+                    {
+                        noPackage = false;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            snackBar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+
+        return result;
+    }
+
     private async Task GetPackages()
     {
         isLoading = true;
@@ -130,6 +235,19 @@ else
         return false;
     }
 
+    private Func<PackageDto, bool> _quickFilter => package =>
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (package.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (package.Publisher.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (package.Identifier.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    };
+
     private void OpenNew()
     {
         NavigationManager.NavigateTo("/packageEdit");
@@ -150,18 +268,21 @@ else
         if (!result.Canceled)
         {
             var data = result.Data as PackageDto;
-
-            var res = await client.PostAsJsonAsync($"api/v1/packages", data);
-
-            if (!res.IsSuccessStatusCode)
+            using (client = await httpClientFactory.CreateClientAsync())
             {
-                var error = await res.Content.ReadAsStringAsync();
-                snackBar.Add(error, Severity.Error);
-            }
-            else
-            {
-                snackBar.Add("Application added successfully.", Severity.Success);
-                await GetPackages();
+                var res = await client.PostAsJsonAsync($"api/v1/packages", data);
+
+                if (!res.IsSuccessStatusCode)
+                {
+                    var error = await res.Content.ReadAsStringAsync();
+                    snackBar.Add(error, Severity.Error);
+                }
+                else
+                {
+                    snackBar.Add("Application added successfully.", Severity.Success);
+                    //await GetPackages();
+                    await _dataGrid.ReloadServerData();
+                }
             }
         }
     }
@@ -174,19 +295,22 @@ else
             yesText: "Delete!", cancelText: "Cancel");
         if (confirm == true)
         {
-            var res = await client.DeleteAsync($"api/v1/packages/{id}");
-            if (!res.IsSuccessStatusCode)
+            using (client = await httpClientFactory.CreateClientAsync())
             {
-                snackBar.Add(res.ReasonPhrase, Severity.Error);
-            }
-            else
-            {
-                snackBar.Add("Application fully deleted", Severity.Success);
-                await GetPackages();
+                var res = await client.DeleteAsync($"api/v1/packages/{id}");
+                if (!res.IsSuccessStatusCode)
+                {
+                    snackBar.Add(res.ReasonPhrase, Severity.Error);
+                }
+                else
+                {
+                    snackBar.Add("Application fully deleted", Severity.Success);
 
-                StateHasChanged();
-            }
+                    //await GetPackages();
 
+                    await _dataGrid.ReloadServerData();
+                }
+            }
 
         }
     }

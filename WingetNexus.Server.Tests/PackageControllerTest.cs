@@ -9,10 +9,24 @@ namespace WingetNexus.Server.Tests
     // create xunit test class for PackageController
     public class PackageControllerTest
     {
-        // create test method for GetPackages
+        // create xunit test for method get in packagecontroller
+        public void Get()
+        {
+            // create mock data
+
+            // create mock repository
+            // create mock logger
+            // create mock mapper
+            // create mock controller
+            // call Get
+            // assert result
+        }
+
+
         public void GetPackages()
         {
             // create mock data
+
 
             // create mock repository
             
