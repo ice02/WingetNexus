@@ -122,6 +122,9 @@ else
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "Winget Nexus API", Version = "v1" });
+
+    //use fully qualified object names
+    c.CustomSchemaIds(x => x.FullName);
 });
 
 //Add support to logging with SERILOG
