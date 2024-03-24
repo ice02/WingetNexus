@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using System.Text.Json.Serialization;
 using WingetNexus.Data;
 using WingetNexus.Data.DataStores;
 using WingetNexus.Data.Extensions;
@@ -44,7 +45,15 @@ var featureManager = services.BuildServiceProvider().GetRequiredService<IFeature
 
 services
     .AddControllersWithViews(options =>options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()))
-    .AddJsonOptions(options =>options.JsonSerializerOptions.PropertyNamingPolicy = null);
+    .AddJsonOptions(
+    options =>
+    { 
+        options.JsonSerializerOptions.PropertyNamingPolicy = null; 
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+
+        var enumConverter = new JsonStringEnumConverter();
+        options.JsonSerializerOptions.Converters.Add(enumConverter);
+    });
 
 services.AddSingleton<IWingetNexusDataStore, WingetNexusDataStore>();
 

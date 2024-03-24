@@ -5,16 +5,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.FeatureManagement;
 using Newtonsoft.Json.Linq;
 using WingetNexus.Data;
-using WingetNexus.Shared.Models.Db;
-using WingetNexus.Shared.Models.Winget;
+using WingetNexus.Shared.Models.Winget._1._7;
 using WingetNexus.WingetApi.Helpers;
 
-namespace WingetNexus.WingetApi.Controllers.v1._4
+namespace WingetNexus.WingetApi.Controllers.v1._7
 {
     /// <summary>
-    /// Api for winget client based on winget contract version 1.4
+    /// Api for winget client based on winget contract version 1.7
     /// </summary>
-    [Route("api/v1.4/[controller]")]
+    [Route("api/v1.7/[controller]")]
     [ApiController]
     [IgnoreAntiforgeryToken]
     public class WingetController : ControllerBase
@@ -33,6 +32,16 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
             _featureManager = featureManager;
         }
 
+        //TODO LIST 
+        // "Channel": {
+        //  "type": [ "string", "null" ],
+        //  "minLength": 1,
+        //  "maxLength": 16,
+        //  "description": "The distribution channel"
+        //},
+        // installer un package portable public en mode verbose et voir les difference dans le payload
+        // Dependencies (windowsFeatures, windowsLibraries, packageDependencies, externalDependencies)
+
         [AllowAnonymous]
         [HttpGet("information")]
         public IActionResult Information()
@@ -48,18 +57,58 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
                 _logger.LogDebug($"{header.Key}: {header.Value}");
             }
 
-            return new JsonResult(new
+            var info = new InformationResponseSchema()
             {
-                Data = new
+                Data = new InformationSchema()
                 {
                     SourceIdentifier = _configuration["Reponame"],
-                    ServerSupportedVersions = new[] { "1.0.0", "1.1.0", "1.4.0" },
-                    UnsupportedPackageMatchFields = new List<string>(),
-                    RequiredPackageMatchFields = new List<string>(),
-                    UnsupportedQueryParameters = new List<string>(),
-                    RequiredQueryParameters = new List<string>(),
+                    ServerSupportedVersions = new ServerSupportedVersions() { "1.0.0", "1.1.0", "1.4.0", "1.7.0" },
+                    UnsupportedPackageMatchFields = new PackageMatchFieldArray(),
+                    RequiredPackageMatchFields = new PackageMatchFieldArray(),
+                    UnsupportedQueryParameters = new QueryParameterArray() ,
+                    RequiredQueryParameters = new QueryParameterArray(),
+                    Authentication = new Authentication()
+                    {
+                        AuthenticationType = AuthenticationType.None ,
+                        MicrosoftEntraIdAuthenticationInfo = new MicrosoftEntraIdAuthenticationInfo()
+                        {
+                            Resource = "Resource",
+                            Scope = "test"
+                        }
+                    }
                 }
-            });
+            };
+
+            //if (_featureManager.IsEnabledAsync("RequireAuthentication").Result)
+            //{
+            //    info.Data.Authentication.AuthenticationType = AuthenticationType.MicrosoftEntraId;
+            //}
+
+            return Ok(info);
+
+            //return new JsonResult(new
+            //{
+            //    Data = new
+            //    {
+            //        SourceIdentifier = _configuration["Reponame"],
+            //        ServerSupportedVersions = new[] { "1.0.0", "1.1.0", "1.4.0", "1.7.0" },
+            //        UnsupportedPackageMatchFields = new List<string>(),
+            //        RequiredPackageMatchFields = new List<string>(),
+            //        UnsupportedQueryParameters = new List<string>(),
+            //        RequiredQueryParameters = new List<string>(),
+            //        Authentication = new
+            //        {
+            //            AuthenticationType = "microsoftEntraId",
+                        
+            //            MicrosoftEntraIdAuthenticationInfo = new
+            //            {
+            //                Resource = "Resource",
+            //                Scope = "test"
+            //            }
+            //        }
+            //    }
+                
+            //});
         }
 
         //[HttpGet("packageManifests/{identifier}")]
@@ -171,6 +220,12 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
                 CertificateValidationHelper.ValidateAuthentication(Request, _logger);
             }
 
+            // add to log all information from header
+            foreach (var header in Request.Headers)
+            {
+                _logger.LogDebug($"{header.Key}: {header.Value}");
+            }
+
             //get version from query string
             var queryVersion = Request.Query["Version"].ToString();
 
@@ -186,14 +241,13 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
                 return NoContent();
             }
 
-            var result = new ManifestExtended();
-            var versionData = new List<ManifestVersion>();
+            var versionData = new List<Versions>();
             foreach (var version in package.Versions.Where(p=>p.VersionCode == queryVersion))
             {
-                var data = new ManifestVersion()
+                var data = new Versions()
                 {
                     PackageVersion = version.VersionCode,
-                    DefaultLocale = new ManifestDefaultLocal()
+                    DefaultLocale = new DefaultLocale()
                     {
                         Moniker = version.Identifier,
                         PackageLocale = version.PackageLocale,
@@ -201,9 +255,9 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
                         PackageName = package.Name,
                         ShortDescription = version.ShortDescription
                     },
-                    //Channel = "stable", //version.Channel, // not suported on 1.4
+                    Channel = "stable", //version.Channel, 
                     Installers = GetInstallerData(version),
-                    Locales = new ManifestLocal[0]
+                    //Locales = new ManifestLocal[0]
                 };
 
                 // Only append version if there's at least one installer
@@ -214,21 +268,29 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
             }
 
             //var output0 = package.GenerateOutput();
-            var output = new { Data = new { PackageIdentifier = package.Identifier, Versions = versionData } };
+            //var output = new { Data = new { PackageIdentifier = package.Identifier, Versions = versionData } };
+            ManifestSingleResponseSchema output = new ManifestSingleResponseSchema()
+            {
+                Data = new ManifestSchema()
+                {
+                    PackageIdentifier = package.Identifier,
+                    Versions = versionData
+                }
+            };
 
             Response.Headers.Add("Version", _configuration["CurrentVersion"].ToString());
 
             return Ok(output);
         }
 
-        private ManifestInstaller[] GetInstallerData(PackageVersion version)
+        private List<Installer> GetInstallerData(Shared.Models.Db.PackageVersion version)
         {
             if (version.Installers == null)
             {
-                return new ManifestInstaller[0];
+                return new List<Installer>();
             }
 
-            var installerData = new List<ManifestInstaller>();
+            var installerData = new List<Installer>();
             foreach (var installer in version.Installers)
             {
 
@@ -247,22 +309,22 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
 
             }
 
-            return installerData.ToArray();
+            return installerData;
         }
 
-        private void AddManifestToInstaller(List<ManifestInstaller> installerData, Installer installer, string scope)
+        private void AddManifestToInstaller(List<Installer> installerData, Shared.Models.Db.Installer installer, string scope)
         {
             var installerPath = installer.InstallerPath;
             if (installer.IsLocalPackage)
-                installerPath = $"{_configuration["BaseUrl"]}/api/v1.4/Files/{installer.InstallerPath}";
+                installerPath = $"{_configuration["BaseUrl"]}/api/v1.7/Files/{installer.InstallerPath}";
 
-            var data = new ManifestInstaller()
+            var data = new Installer()
             {
-                Architecture = installer.Architecture,
-                InstallerType = installer.InstallerType,
+                Architecture = Enum.Parse<Architecture>(installer.Architecture),
+                InstallerType = Enum.Parse<InstallerType>(installer.InstallerType),
                 InstallerUrl = installerPath,
                 InstallerSha256 = installer.InstallerSha256,
-                Scope = scope,
+                Scope = Enum.Parse<Scope>(scope),
                 InstallerSwitches = GetInstallerSwitches(installer)
             };
 
@@ -275,14 +337,14 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
             installerData.Add(data);
         }
 
-        private ManifestNestedInstallerFile[] GetNestedInstallerData(Installer installer)
+        private NestedInstallerFiles GetNestedInstallerData(Shared.Models.Db.Installer installer)
         {
-            var nestedInstallerData = new List<ManifestNestedInstallerFile>();
+            var nestedInstallerData = new NestedInstallerFiles();
             if (installer != null && installer.NestedInstallerFiles != null)
             {
                 foreach (var nestedInstallerFile in installer.NestedInstallerFiles)
                 {
-                    var data = new ManifestNestedInstallerFile()
+                    var data = new NestedInstallerFile()
                     {
                         RelativeFilePath = nestedInstallerFile.RelativeFilePath,
                         PortableCommandAlias = nestedInstallerFile.PortableCommandAlias
@@ -290,38 +352,45 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
                     nestedInstallerData.Add(data);
                 }
             }
-            return nestedInstallerData.ToArray();
+            return nestedInstallerData;
         }
 
-        private Dictionary<string, string> GetInstallerSwitches(Installer installer)
+        private InstallerSwitches GetInstallerSwitches(Shared.Models.Db.Installer installer)
         {
-            Dictionary<string, string> switches = new Dictionary<string, string>();
+            InstallerSwitches switches = new InstallerSwitches();
             if (installer.Switches == null)
             {
                 return null;
             }
            
-            foreach (var sw in installer.Switches)
-            {
-                if (!string.IsNullOrEmpty(sw.Value))
-                {
-                    switches[sw.Parameter] = sw.Value;
-                }
-            }
+            switches.Upgrade = installer.Switches.FirstOrDefault(p=>p.Parameter == "Upgrade")?.Value;
+            switches.Silent = installer.Switches.FirstOrDefault(p=>p.Parameter == "Silent")?.Value;
+            switches.SilentWithProgress = installer.Switches.FirstOrDefault(p=>p.Parameter == "SilentWithProgress")?.Value;
+            switches.Interactive = installer.Switches.FirstOrDefault(p=>p.Parameter == "Interactive")?.Value;
+            switches.InstallLocation = installer.Switches.FirstOrDefault(p=>p.Parameter == "InstallLocation")?.Value;
+            switches.Log = installer.Switches.FirstOrDefault(p=>p.Parameter == "Log")?.Value;
+            switches.Custom = installer.Switches.FirstOrDefault(p=>p.Parameter == "Custom")?.Value;
+
             return switches;
         }
 
         [HttpPost("manifestSearch")]
-        public async Task<IActionResult> ManifestSearch([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ManifestSearchRequest request_data)
+        public async Task<IActionResult> ManifestSearch([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ManifestSearchRequestSchema request_data)
         {
             if (_featureManager.IsEnabledAsync("RequireAuthentication").Result)
             {
                 CertificateValidationHelper.ValidateAuthentication(Request, _logger);
             }
 
+            // add to log all information from header
+            foreach (var header in Request.Headers)
+            {
+                _logger.LogDebug($"{header.Key}: {header.Value}");
+            }
+
             _logger.LogDebug(request_data.ToString());
 
-            var maximum_results = request_data.MaximumResults ?? 100;
+            var maximum_results = request_data.MaximumResults > 0 ? request_data.MaximumResults : 100;
             var fetch_all_manifests = request_data.FetchAllManifests;
 
             var query = request_data.Query;
@@ -330,7 +399,7 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
             if (query != null)
             {
                 keyword = query.KeyWord;
-                match_type = query.MatchType;
+                match_type = query.MatchType.ToString();
             }
 
             var inclusions = request_data.Inclusions;
@@ -338,12 +407,12 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
             SearchRequestMatch request_match = null;
             if (inclusions != null)
             {
-                package_match_field = inclusions[0].PackageMatchField;
+                package_match_field = inclusions[0].PackageMatchField.ToString();
                 request_match = inclusions[0].RequestMatch;
                 if (query == null)
                 {
                     keyword = request_match.KeyWord;
-                    match_type = request_match.MatchType;
+                    match_type = request_match.MatchType.ToString();
                 }
             }
 
@@ -354,14 +423,14 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
             string match_type_filter = null;
             if (filters != null)
             {
-                package_match_field_filter = filters[0].PackageMatchField;
+                package_match_field_filter = filters[0].PackageMatchField.ToString();
                 request_match_filter = filters[0].RequestMatch;
                 keyword_filter = request_match_filter.KeyWord;
-                match_type_filter = request_match_filter.MatchType;
+                match_type_filter = request_match_filter.MatchType.ToString();
             }
 
-            var results = new ManifestSearchResponse();
-            var packages = new List<Package>();
+            var results = new List<ManifestSearchResponseSchema>();
+            var packages = new List<Shared.Models.Db.Package>();
             if (keyword != null && match_type != null)
             {
                 var ctx_request = _context.Packages
@@ -405,30 +474,30 @@ namespace WingetNexus.WingetApi.Controllers.v1._4
             }
 
             var output_data = new List<JObject>();
-            results.Data = new List<ManifestSearchResponseItem>();
+            results = new List<ManifestSearchResponseSchema>();
             foreach (var package in packages)
             {
                 //if (package.Versions.Any())
                 //{
                 //    output_data.Add(package.GenerateOutputManifestSearch());
                 //}
-                results.Data.Add(new ManifestSearchResponseItem()
+                results.Add(new ManifestSearchResponseSchema()
                 {
                     PackageIdentifier = package.Identifier,
                     PackageName = package.Name,
                     Publisher = package.Publisher,
-                    Versions = package.Versions.Where(p => p.Installers.Any()).Select(v => new SearchVersions()
+                    Versions = package.Versions.Where(p => p.Installers.Any()).Select(v => new ManifestSearchVersionSchema()
                     {
                         PackageVersion = v.VersionCode,
                         //Installers = v.Installers?.ToList(),
                         //Channel = v.Channel
-                    }).ToArray()
+                    }).ToList()
                 });
             }
 
-            _logger.LogDebug($"Found {results.Data.Count} results");
+            _logger.LogDebug($"Found {results.Count} results");
 
-            return Ok(results);
+            return Ok(new ApiResponse<List<ManifestSearchResponseSchema>>(results));
 
             //var output = new JObject(new JProperty("Data", new JArray(output_data)));
             //_logger.LogDebug(output.ToString());

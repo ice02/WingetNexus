@@ -188,66 +188,6 @@ else
         return result;
     }
 
-    private async Task GetPackages()
-    {
-        isLoading = true;
-        StateHasChanged();
-        try
-        {
-            var res = await client.GetAsync("api/v1/packages");
-            if (!res.IsSuccessStatusCode)
-            {
-                snackBar.Add(res.ReasonPhrase, Severity.Error);
-            }
-            else
-            {
-                packages = await res?.Content?.ReadFromJsonAsync<IEnumerable<PackageDto>>();
-                if (packages == null || packages.Count() == 0)
-                {
-                    noPackage = true;
-                }
-                else
-                {
-                    noPackage = false;
-                }
-
-                StateHasChanged();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-            snackBar.Add(ex.Message, Severity.Error);
-        }
-        isLoading = false;
-    }
-
-    private bool Search(PackageDto package)
-    {
-        if (string.IsNullOrWhiteSpace(searchString))
-            return true;
-        if (package.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (package.Publisher.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (package.Identifier.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        return false;
-    }
-
-    private Func<PackageDto, bool> _quickFilter => package =>
-    {
-        if (string.IsNullOrWhiteSpace(searchString))
-            return true;
-        if (package.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (package.Publisher.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (package.Identifier.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        return false;
-    };
-
     private void OpenNew()
     {
         NavigationManager.NavigateTo("/packageEdit");
