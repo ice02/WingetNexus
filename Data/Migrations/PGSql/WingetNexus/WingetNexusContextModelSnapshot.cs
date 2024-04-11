@@ -15,7 +15,7 @@ namespace WingetNexus.Data.Migrations.PGSql.WingetNexus
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.1");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.2");
 
             modelBuilder.Entity("WingetNexus.Shared.Models.Db.Installer", b =>
                 {
@@ -54,8 +54,17 @@ namespace WingetNexus.Data.Migrations.PGSql.WingetNexus
                     b.Property<int>("PackageVersionId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ProductCode")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("ReleaseDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Scope")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpgradeBehavior")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -171,6 +180,30 @@ namespace WingetNexus.Data.Migrations.PGSql.WingetNexus
                     b.ToTable("NestedInstallerFiles");
                 });
 
+            modelBuilder.Entity("WingetNexus.Shared.Models.Db.Objects.PackageDependency", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("InstallerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("MinimumVersion")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PackageId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstallerId");
+
+                    b.HasIndex("PackageId");
+
+                    b.ToTable("PackageDependencies");
+                });
+
             modelBuilder.Entity("WingetNexus.Shared.Models.Db.Package", b =>
                 {
                     b.Property<int>("Id")
@@ -281,6 +314,21 @@ namespace WingetNexus.Data.Migrations.PGSql.WingetNexus
                     b.Navigation("Installer");
                 });
 
+            modelBuilder.Entity("WingetNexus.Shared.Models.Db.Objects.PackageDependency", b =>
+                {
+                    b.HasOne("WingetNexus.Shared.Models.Db.Installer", null)
+                        .WithMany("PackageDependencies")
+                        .HasForeignKey("InstallerId");
+
+                    b.HasOne("WingetNexus.Shared.Models.Db.Package", "Package")
+                        .WithMany()
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Package");
+                });
+
             modelBuilder.Entity("WingetNexus.Shared.Models.Db.PackageVersion", b =>
                 {
                     b.HasOne("WingetNexus.Shared.Models.Db.Package", "Package")
@@ -303,6 +351,8 @@ namespace WingetNexus.Data.Migrations.PGSql.WingetNexus
             modelBuilder.Entity("WingetNexus.Shared.Models.Db.Installer", b =>
                 {
                     b.Navigation("NestedInstallerFiles");
+
+                    b.Navigation("PackageDependencies");
 
                     b.Navigation("Switches");
                 });

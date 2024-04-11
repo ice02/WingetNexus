@@ -25,6 +25,11 @@ namespace WingetNexus.Shared.Models.Dtos
         [Required]
         public string? Scope { get; set; }
 
+        public List<VersionDto> PackagesDependencies { get; set; }
+        public List<string> ExternalDependencies { get; set; }
+        public List<WindowsFeatureDependencyDto> WindowsFeatures { get; set; }
+        public List<WindowsComponentDependencyDto> WindowsLibraries { get; set; }
+
         public string? NestedInstallerType { get; set; }
 
         //public string? FullUrl { get; set; }

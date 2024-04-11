@@ -32,12 +32,17 @@ namespace WingetNexus.Shared.Models.Db
         public string Architecture { get; set; }
         public string InstallerType { get; set; }
         public string InstallerPath { get; set; }
+        public string? ProductCode { get; set; }
         public bool IsLocalPackage { get; set; }
         public string InstallerSha256 { get; set; }
         public string Scope { get; set; }
+        public string? UpgradeBehavior { get; set; }
+        public DateOnly? ReleaseDate { get; set; }
         public virtual ICollection<InstallerSwitch> Switches { get; set; }
         public string? NestedInstallerType { get; set; }
         public virtual ICollection<NestedInstallerFile>? NestedInstallerFiles { get; set; }
+
+        public virtual ICollection<PackageDependency>? PackageDependencies { get; set; }
 
         public DateTime DateAdded { get; set; } = DateTime.Now;
         public DateTime DateModified { get; set; }
@@ -49,19 +54,19 @@ namespace WingetNexus.Shared.Models.Db
         [ForeignKey("Version")]
         public int PackageVersionId { get; set; }
 
-        public JObject ToJson()
-        {
-            var switches = new JArray(Switches.Select(s => s.ToJson()));
-            return new JObject(
-                new JProperty("id", Id),
-                new JProperty("version_id", PackageVersionId),
-                new JProperty("architecture", Architecture),
-                new JProperty("installer_type", InstallerType),
-                new JProperty("file_name", InstallerPath),
-                new JProperty("installer_sha256", InstallerSha256),
-                new JProperty("scope", Scope),
-                new JProperty("switches", switches)
-            );
-        }
+        //public JObject ToJson()
+        //{
+        //    var switches = new JArray(Switches.Select(s => s.ToJson()));
+        //    return new JObject(
+        //        new JProperty("id", Id),
+        //        new JProperty("version_id", PackageVersionId),
+        //        new JProperty("architecture", Architecture),
+        //        new JProperty("installer_type", InstallerType),
+        //        new JProperty("file_name", InstallerPath),
+        //        new JProperty("installer_sha256", InstallerSha256),
+        //        new JProperty("scope", Scope),
+        //        new JProperty("switches", switches)
+        //    );
+        //}
     }
 }

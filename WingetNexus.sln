@@ -23,6 +23,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WingetNexus.Server.Tests", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WingetNexus.WingetApi", "WingetApi\WingetNexus.WingetApi.csproj", "{4ED14CE0-5E1F-4946-A0AF-90241B9380F3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WingetNexus.WingetApi.Tests", "WingetNexus.WingetApi.Tests\WingetNexus.WingetApi.Tests.csproj", "{BC35955B-AB86-4A85-9919-D1770C050BF2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +55,10 @@ Global
 		{4ED14CE0-5E1F-4946-A0AF-90241B9380F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4ED14CE0-5E1F-4946-A0AF-90241B9380F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4ED14CE0-5E1F-4946-A0AF-90241B9380F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC35955B-AB86-4A85-9919-D1770C050BF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC35955B-AB86-4A85-9919-D1770C050BF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC35955B-AB86-4A85-9919-D1770C050BF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC35955B-AB86-4A85-9919-D1770C050BF2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

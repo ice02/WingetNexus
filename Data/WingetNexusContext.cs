@@ -69,6 +69,9 @@ namespace WingetNexus.Data
             builder.Entity<Locale>()
                 .HasKey(l => l.PackageLocale);
 
+            builder.Entity<PackageDependency>()
+                .HasOne(p => p.Package);
+
         }
 
         public DbSet<Package> Packages { get; set; }
@@ -77,5 +80,6 @@ namespace WingetNexus.Data
         public DbSet<InstallerSwitch> InstallerSwitches { get; set; }
         public DbSet<NestedInstallerFile> NestedInstallerFiles { get; set; }
         public DbSet<Locale> Locales { get; set; }
+        public DbSet<PackageDependency> PackageDependencies { get; set; }
     }
 }

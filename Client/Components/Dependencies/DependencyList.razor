@@ -1,0 +1,48 @@
+﻿@attribute [Authorize]
+@inject IAntiforgeryHttpClientFactory httpClientFactory
+
+@inject MudBlazor.ISnackbar snackBar
+@inject IDialogService DialogService
+
+@* package dependency list *@
+<MudPaper>
+
+    <MudTabs>
+        <MudTabPanel Text="Package dependencies">
+    
+            <MudList>
+                @foreach (var dependency in installer.PackagesDependencies)
+                {
+                    <MudListItem>
+                        <MudText>@dependency.Identifier / @dependency.VersionCode</MudText>
+                    </MudListItem>
+                }
+            </MudList>
+
+        </MudTabPanel>
+        <MudTabPanel Text="Windows feature dependencies">
+            <MudList>
+                @foreach (var dependency in installer.WindowsFeatures)
+                {
+                    <MudListItem>
+                        @* <MudText>@dependency.Identifier / @dependency.VersionCode</MudText> *@
+                    </MudListItem>
+                }
+            </MudList>
+        </MudTabPanel>
+    </MudTabs>
+
+        
+</MudPaper>
+
+
+@code {
+    [Parameter] public InstallerDto installer { get; set; }
+
+    HttpClient httpClient = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        httpClient = await httpClientFactory.CreateClientAsync();
+    }
+}

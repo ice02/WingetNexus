@@ -208,6 +208,7 @@ else
 //        configuration["OpenIDConnectSettings:Authority"]!));
 
 app.UseHttpsRedirection();
+app.UseHsts();
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
