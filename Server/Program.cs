@@ -89,6 +89,9 @@ services
 
 services.AddSingleton<IWingetNexusDataStore, WingetNexusDataStore>();
 services.AddTransient<IApplicationDatastore, ApplicationDatastore>();
+services.AddTransient<IWingetAppDatastore, WingetAppDatastore>();
+services.AddTransient<IVersionDatastore, VersionDatastore>();
+services.AddTransient<IPublisherDataStore, PublisherDataStore>();
 
 //Storage management
 if (featureManager.IsEnabledAsync("S3Storage").Result)
