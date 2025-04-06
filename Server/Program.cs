@@ -12,6 +12,7 @@ using WingetNexus.Data.DataStores;
 using WingetNexus.Data.Extensions;
 using WingetNexus.Server.Security;
 using WingetNexus.Server.Settings;
+using WingetNexus.Shared.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,11 +88,12 @@ services
     .AddControllersWithViews(options =>options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()))
     .AddJsonOptions(options =>options.JsonSerializerOptions.PropertyNamingPolicy = null);
 
-services.AddSingleton<IWingetNexusDataStore, WingetNexusDataStore>();
 services.AddTransient<IApplicationDatastore, ApplicationDatastore>();
 services.AddTransient<IWingetAppDatastore, WingetAppDatastore>();
 services.AddTransient<IVersionDatastore, VersionDatastore>();
 services.AddTransient<IPublisherDataStore, PublisherDataStore>();
+
+services.AddDataMappers();
 
 //Storage management
 if (featureManager.IsEnabledAsync("S3Storage").Result)

@@ -1,4 +1,4 @@
-﻿using WingetNexus.Shared.Entities;
+﻿using WingetNexus.Shared.Models.Entities;
 
 namespace WingetNexus.Data.DataStores
 {

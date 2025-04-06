@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace WingetNexus.Shared.Entities
+namespace WingetNexus.Shared.Models.Entities
 {
     public class Publisher
     {

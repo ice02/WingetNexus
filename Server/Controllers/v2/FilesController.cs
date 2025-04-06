@@ -6,7 +6,7 @@ using WingetNexus.Shared.Models.Dtos;
 
 namespace WingetNexus.Controllers.v2
 {
-    [Route("api/v1/[controller]")]
+    [Route("api/v2/[controller]")]
     [ApiController]
     public class FilesController : ControllerBase
     {

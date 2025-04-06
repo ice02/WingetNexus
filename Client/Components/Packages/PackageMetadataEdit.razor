@@ -29,7 +29,7 @@
 
 @code
 {
-    [Parameter] public PackageDto Package { get; set; }
+    [Parameter] public ApplicationDto Package { get; set; }
     [Parameter] public bool IsNewPackage { get; set; }
 
     HttpClient httpClient = null;
@@ -40,7 +40,7 @@
 
         if (Package == null)
         {
-            Package = new PackageDto();
+            Package = new ApplicationDto();
         }
     }
 
@@ -54,7 +54,7 @@
         {
             if (!string.IsNullOrEmpty(Package.Publisher) && !string.IsNullOrEmpty(Package.Name))
             {
-                var res = await httpClient.PutAsJsonAsync($"api/v1/packages/{Package.Identifier}/infos",
+                var res = await httpClient.PutAsJsonAsync($"api/v1/packages/{Package.PackageIdentifier}/infos",
                     new NewPackageDto
                         {
                             Publisher = Package.Publisher,
@@ -106,7 +106,7 @@
                 else
                 {
                     snackBar.Add("Package created", Severity.Success);
-                    Package = await res.Content.ReadFromJsonAsync<PackageDto>();
+                    Package = await res.Content.ReadFromJsonAsync<ApplicationDto>();
                     IsNewPackage = false;
                 }
             }

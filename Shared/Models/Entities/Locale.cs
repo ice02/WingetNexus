@@ -1,4 +1,6 @@
-namespace WingetNexus.Shared.Entities
+
+
+namespace WingetNexus.Shared.Models.Entities
 {
     public class Locale
     {
@@ -8,10 +10,10 @@ namespace WingetNexus.Shared.Entities
 
         public required string JsonVersion { get; set; }
 
-        public required int VersionId { get; set; }
+        public int VersionId { get; set; }
         public required Version Version { get; set; }
 
-                public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
         public DateTime ModifiedDate { get; set; } = DateTime.Now;
     }
 }

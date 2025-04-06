@@ -29,7 +29,7 @@ namespace WingetNexus.Shared.Exceptions
         /// <summary>
         /// This is the message for when the resource version does not match the document version.
         /// </summary>
-        public const string PackageDoesNotMatchErrorMessage = "The document Identifier does not match resource Identifier.";
+        public const string PackageDoesNotMatchErrorMessage = "The document PackageIdentifier does not match resource PackageIdentifier.";
 
         /// <summary>
         /// This is the code for an data validation error.

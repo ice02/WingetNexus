@@ -1,136 +1,271 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using WingetNexus.Shared.Entities;
+using WingetNexus.Shared.Models.Dtos;
+using WingetNexus.Shared.Models.Entities;
 
 namespace WingetNexus.Data.DataStores
 {
     public class WingetAppDatastore : IWingetAppDatastore
     {
-        private readonly WingetNexusCtx _context;
+        private readonly WingetNexusContext _context;
         private readonly ILogger<WingetAppDatastore> _logger;
+        private readonly IMapper _mapper;
 
-        public WingetAppDatastore(WingetNexusCtx context, ILogger<WingetAppDatastore> logger)
+        public WingetAppDatastore(WingetNexusContext context, ILogger<WingetAppDatastore> logger, IMapper mapper)
         {
             _context = context;
             _logger = logger;
+            _mapper = mapper;
         }
 
-        public async Task<Application> CreateApplicationAsync(Application application)
+        public async Task<ApplicationDto> CreateApplicationAsync(ApplicationDto application)
         {
-            _context.Applications.Add(application);
-            await _context.SaveChangesAsync();
-            return application;
+            if (application == null) {
+                throw new ArgumentNullException(nameof(application));
+            }
+
+            try
+            {
+                var publisher = await _context.Publishers.FirstOrDefaultAsync(
+                    p =>  p.Name.ToUpper() == application.Publisher.ToUpper());
+
+                if (publisher == null)
+                {
+                    publisher = new Publisher
+                    {
+                        Name = application.Publisher
+                    };
+                    var resultPublisher = _context.Publishers.Add(publisher);
+                }
+                var newApp = new Application
+                {
+                    Name = application.Name,
+                    Publisher = publisher,
+                    PackageIdentifier = application.PackageIdentifier,
+                };
+
+                var resultApp = _context.Applications.Add(newApp);
+                await _context.SaveChangesAsync();
+
+                var res =  _mapper.Map<ApplicationDto>(resultApp.Entity);
+                //var res =  ApplicationMapper.ToDto(resultApp.Entity);
+                return res;
+            }
+            catch (Exception exc)
+            {
+                _logger.LogCritical(exc, "Failed to create application {0} / {1}", application.Publisher, application.Name);
+                throw;
+            }
         }
 
-        public async Task<Application> GetApplicationByIdAsync(int id)
+        public async Task<ApplicationDto> GetApplicationByIdAsync(int id)
         {
-            var application = await _context.Applications
+            try
+            {
+                var application = await _context.Applications
                 .Include(a => a.Publisher)
                 .Include(a => a.Versions) // Add versions as navigation property
                 .FirstOrDefaultAsync(a => a.Id == id);
-            if (application == null)
-            {
-                throw new KeyNotFoundException($"Application with id {id} not found.");
+                if (application == null)
+                {
+                    throw new KeyNotFoundException($"Application with id {id} not found.");
+                }
+                return _mapper.Map<ApplicationDto>(application);
             }
-            return application;
+            catch (Exception)
+            {
+                _logger.LogError("Failed to get application by id {0}", id);
+                throw;
+            }
         }
 
-        public async Task<Application> GetApplicationByUidAsync(string uid)
+        public async Task<ApplicationDto> GetApplicationByUidAsync(string uid)
         {
-            var application = await _context.Applications
+            try
+            {
+                var application = await _context.Applications
                 .Include(a => a.Publisher)
                 .Include(a => a.Versions) // Add versions as navigation property
                 .FirstOrDefaultAsync(a => a.PackageIdentifier == uid);
-            if (application == null)
-            {
-                throw new KeyNotFoundException($"Application with PackageIdentifier {uid} not found.");
+                if (application == null)
+                {
+                    throw new KeyNotFoundException($"Application with PackageIdentifier {uid} not found.");
+                }
+                return _mapper.Map<ApplicationDto>(application);
             }
-            return application;
+            catch (Exception)
+            {
+                _logger.LogError("Failed to get application by uid {0}", uid);
+                throw;
+            }
+            
         }
 
-        public async Task<IEnumerable<Application>> GetAllApplicationsAsync(
-            string? filter = null, int? pageNumber = 1, int? pageSize = 10, string? orderBy = null, string? orderway="DESC")
+        public async Task<IEnumerable<ApplicationDto>> GetAllApplicationsAsync(FilterDto filterDto)
         {
-            var query = _context.Applications
+            try
+            {
+                var query = _context.Applications
                 .Include(a => a.Publisher)
                 .Include(a => a.Versions) // Add versions as navigation property
                 .AsQueryable();
 
-            if (!string.IsNullOrEmpty(filter))
-            {
-                query = query.Where(a => a.Name.Contains(filter) || a.Publisher.Name.Contains(filter));
-            }
-
-            if (!string.IsNullOrEmpty(orderBy))
-            {
-                query = orderBy switch
+                if (filterDto != null && !string.IsNullOrEmpty(filterDto.Filter))
                 {
-                    "name" => query.OrderBy(a => a.Name),
-                    "publisher" => query.OrderBy(a => a.Publisher.Name),
-                    _ => query
-                };
-            }
+                    query = query.Where(a => a.Name.Contains(filterDto.Filter) || a.Publisher.Name.Contains(filterDto.Filter));
+                }
 
-            if (!string.IsNullOrEmpty(orderway))
-            {
-                query = orderway switch
+                if (filterDto != null && !string.IsNullOrEmpty(filterDto.OrderBy))
                 {
-                    "ASC" => query.OrderBy(a => a.Name),
-                    "DESC" => query.OrderByDescending(a => a.Name),
-                    _ => query
-                };
-            }
+                    query = filterDto.OrderBy switch
+                    {
+                        "name" => query.OrderBy(a => a.Name),
+                        "publisher" => query.OrderBy(a => a.Publisher.Name),
+                        _ => query
+                    };
+                }
 
-            return await query.Skip((pageNumber.Value - 1) * pageSize.Value).Take(pageSize.Value).ToListAsync();
+                if (filterDto != null && !string.IsNullOrEmpty(filterDto.OrderWay))
+                {
+                    query = filterDto.OrderWay switch
+                    {
+                        "ASC" => query.OrderBy(a => a.Name),
+                        "DESC" => query.OrderByDescending(a => a.Name),
+                        _ => query
+                    };
+                }
+
+                if (filterDto == null && filterDto.PageNumber.HasValue && filterDto.PageSize.HasValue)
+                {
+                    query = query
+                        .Skip((filterDto.PageNumber.Value ) * filterDto.PageSize.Value)
+                        .Take(filterDto.PageSize.Value);
+                }
+
+                return _mapper.Map<List<ApplicationDto>>(await query.ToListAsync());
+            }
+            catch (Exception exc)
+            {
+                _logger.LogCritical(exc, "Error during get all applications");
+                throw;
+            }
+            
         }
 
-        public async Task<Application> UpdateApplicationAsync(Application application)
+        public async Task<ApplicationDto> UpdateApplicationAsync(ApplicationDto application)
         {
-            _context.Applications.Update(application);
-            await _context.SaveChangesAsync();
-            return application;
+            try
+            {
+                var uptApp = _context.Applications.Update(_mapper.Map<Application>(application));
+                
+                await _context.SaveChangesAsync();
+
+                return _mapper.Map<ApplicationDto>(uptApp);
+            }
+            catch (Exception exc)
+            {
+                _logger.LogCritical(exc, "Failed to update application {0} / {1}", application.Publisher, application.Name);
+                throw;
+            }
+            
         }
 
         public async Task DeleteApplicationAsync(string packageIdentifier)
         {
-            var application = await _context.Applications.FirstOrDefaultAsync(p=>p.PackageIdentifier == packageIdentifier);
-            if (application != null)
+            try
             {
-                _context.Applications.Remove(application);
-                await _context.SaveChangesAsync();
+                var application = await _context.Applications.FirstOrDefaultAsync(p => p.PackageIdentifier == packageIdentifier);
+                if (application != null)
+                {
+                    _context.Applications.Remove(application);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception exc)
+            {
+                _logger.LogCritical(exc, "Failed to delete application by uid {0}", packageIdentifier);
+                throw;
             }
         }
 
-        public async Task<Application> GetApplicationByPublisherAndNameAsync(int publisherId, string name)
+        public async Task<ApplicationDto> GetApplicationByPublisherAndNameAsync(int publisherId, string name)
         {
-            return await _context.Applications
-                .FirstOrDefaultAsync(a => a.PublisherId == publisherId && a.Name.Equals(name, StringComparison.OrdinalIgnoreCase))!;
+            try
+            {
+                return _mapper.Map<ApplicationDto>(await _context.Applications
+                .FirstOrDefaultAsync(
+                a => a.PublisherId == publisherId &&
+                    a.Name.Equals(name, StringComparison.OrdinalIgnoreCase))!);
+            }
+            catch (Exception exc)
+            {
+                _logger.LogCritical(exc, "Failed to get application by publisherId {0} and name {1}", publisherId, name);
+                throw;
+            }
+            
         }
 
-        public async Task<Application> GetApplicationByPublisherAndNameAsync(string publisherName, string name)
+        public async Task<ApplicationDto> GetApplicationByPublisherAndNameAsync(string publisherName, string name)
         {
-            return await _context.Applications
-                .FirstOrDefaultAsync(a => a.Name == publisherName && a.Name.Equals(name, StringComparison.OrdinalIgnoreCase))!;
+            try
+            {
+                return _mapper.Map<ApplicationDto>(await _context.Applications
+                .FirstOrDefaultAsync(
+                a => a.Publisher.Name.Equals(publisherName, StringComparison.OrdinalIgnoreCase) &&
+                    a.Name.Equals(name, StringComparison.OrdinalIgnoreCase))!);
+            }
+            catch (Exception exc)
+            {
+                _logger.LogCritical(exc, "Failed to get application by publisher name {0} and name {1}", publisherName, name);
+                throw;
+            }
         }
 
-        public Task<int> GetApplicationCountAsync(string? filter = null)
+        public async Task<int> GetApplicationCountAsync(string? filter = null)
         {
-            return _context.Applications
+            return await _context.Applications
                 .Where(a => string.IsNullOrEmpty(filter) || a.Name.Contains(filter) || a.Publisher.Name.Contains(filter))
                 .CountAsync();
         }
 
-        public Task<Application> GetApplicationByPackageIdentifierAsync(string packageIdentifier)
+        public async Task<ApplicationDto> GetApplicationByPackageIdentifierAsync(string packageIdentifier)
         {
-            return _context.Applications
+            try
+            {
+                return _mapper.Map<ApplicationDto>(await _context.Applications
                 .Include(a => a.Publisher)
                 .Include(a => a.Versions) // Add versions as navigation property
-                .FirstOrDefaultAsync(a => a.PackageIdentifier == packageIdentifier);
+                .FirstOrDefaultAsync(a => a.PackageIdentifier == packageIdentifier));
+            }
+            catch (Exception exc)
+            {
+                _logger.LogCritical(exc, "Failed to get application by package identifier {0}", packageIdentifier);
+                throw;
+            }
+            
+        }
+
+        public async Task<int> GetAppCountByIdentyifierAsync(string packageIdentifier)
+        {
+            try
+            {
+                return await _context.Applications.CountAsync(p => p.PackageIdentifier == packageIdentifier);
+
+            }
+            catch (Exception exc)
+            {
+                _logger.LogCritical(exc, "Failed to get application count by package identifier {0}", packageIdentifier);
+                throw;
+            }
+        }
+
+        public Task<List<string>> SearchPublishersAsync(string search)
+        {
+            return _context.Publishers
+                .Where(p => p.Name.Contains(search))
+                .Select(p => p.Name)
+                .ToListAsync();
         }
     }
 }

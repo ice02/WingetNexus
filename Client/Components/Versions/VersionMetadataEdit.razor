@@ -1,13 +1,13 @@
 ﻿
 <MudPaper Class="mud-width-full ma-4 pa-4">
 
-    <MudTextField T="string" @bind-Value="Version.VersionCode"
+    <MudTextField T="string" @bind-Value="Version.VersionNumber"
                   Label="Version" HelperText="Fill with version number" ReadOnly="@IsReadOnly" Required="true" />
 
     <MudTextField T="string" @bind-Value="Version.ShortDescription" ReadOnly="@IsReadOnly" Label="Short description"
                   Required="true" RequiredError="Description is mandatory!" />
 
-    <MudTextField T="string" @bind-Value="Version.PackageLocale" ReadOnly="@IsReadOnly" Label="Default local"
+    <MudTextField T="string" @bind-Value="Version.DefaultLocaleKey" ReadOnly="@IsReadOnly" Label="Default local"
                   Required="true" RequiredError="Default local is mandatory!" />
 </MudPaper>
 

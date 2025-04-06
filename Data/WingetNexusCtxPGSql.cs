@@ -8,14 +8,14 @@ using System.Threading.Tasks;
 
 namespace WingetNexus.Data
 {
-    public class WingetNexusCtxPGSql : WingetNexusCtx
+    public class WingetNexusContextPGSql : WingetNexusContext
     {
         private readonly IConfiguration _configuration;
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
             => options.UseNpgsql(_configuration.GetConnectionString("WingetPGSqlContext"));
 
-        public WingetNexusCtxPGSql(DbContextOptions<WingetNexusCtx> options, IConfiguration configuration) : base(options)
+        public WingetNexusContextPGSql(DbContextOptions<WingetNexusContext> options, IConfiguration configuration) : base(options)
         {
             _configuration = configuration;
         }

@@ -186,7 +186,7 @@ namespace WingetNexus.Data.Migrations.PGSql.WingetNexus
                     b.Property<int>("DownloadCount")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Identifier")
+                    b.Property<string>("PackageIdentifier")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -200,7 +200,7 @@ namespace WingetNexus.Data.Migrations.PGSql.WingetNexus
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Identifier")
+                    b.HasIndex("PackageIdentifier")
                         .IsUnique();
 
                     b.HasIndex("Name");
@@ -222,7 +222,7 @@ namespace WingetNexus.Data.Migrations.PGSql.WingetNexus
                     b.Property<DateTime>("DateAdded")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Identifier")
+                    b.Property<string>("PackageIdentifier")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -237,7 +237,7 @@ namespace WingetNexus.Data.Migrations.PGSql.WingetNexus
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("VersionCode")
+                    b.Property<string>("VersionNumber")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -245,7 +245,7 @@ namespace WingetNexus.Data.Migrations.PGSql.WingetNexus
 
                     b.HasIndex("PackageLocale");
 
-                    b.HasIndex("PackageId", "VersionCode")
+                    b.HasIndex("PackageId", "VersionNumber")
                         .IsUnique();
 
                     b.ToTable("PackageVersions");

@@ -1,12 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using WingetNexus.Data;
-using WingetNexus.Data.DataStores;
-using WingetNexus.Server.Mappers;
-using WingetNexus.Server.Security;
-using WingetNexus.Shared.Entities;
-using Version = WingetNexus.Shared.Entities.Version;
+﻿using WingetNexus.Data.DataStores;
+using WingetNexus.Shared.Models.Dtos;
+using WingetNexus.Shared.Models.Entities;
+using Version = WingetNexus.Shared.Models.Entities.Version;
 
 namespace WingetNexus.Controllers.v2
 {
@@ -40,14 +35,23 @@ namespace WingetNexus.Controllers.v2
         /// <param name="pageSize"></param>
         /// <returns></returns>
         [HttpGet()]
-        public async Task<ActionResult<IQueryable<Application>>> Get(
+        public async Task<ActionResult<IQueryable<ApplicationDto>>> Get(
             [FromQuery] int? page,
             [FromQuery] int? pageSize,
             [FromQuery] string? filter,
             [FromQuery] string? orderby,
             [FromQuery] string? orderway)
         {
-            var result = await _dataStore.GetAllApplicationsAsync(filter, page, pageSize, orderby, orderway);
+            var filterDto = new FilterDto()
+            {
+                PageNumber = page,
+                PageSize = pageSize,
+                Filter = filter,
+                OrderBy = orderby,
+                OrderWay = orderway
+            };
+
+            var result = await _dataStore.GetAllApplicationsAsync(filterDto);
             var packageCnt = await _dataStore.GetApplicationCountAsync(filter);
 
             Response.Headers.Append("X-Total-Count", packageCnt.ToString());
@@ -64,15 +68,22 @@ namespace WingetNexus.Controllers.v2
             return Ok(packageCnt);
         }
 
+        [HttpGet("checkUnicity")]
+        public async Task<ActionResult<bool>> CheckUnicity([FromQuery]string identifier)
+        {
+            var packageCnt = await _dataStore.GetAppCountByIdentyifierAsync(identifier);
+            return Ok(packageCnt == 0);
+        }
+
         /// <summary>
         /// Get full package details by identifier
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpGet("{id}")]
+        [HttpGet("{packageIdentifier}")]
         //[Authorize]
         //[Authorize(Policy = "get:package")]
-        public async Task<ActionResult<Application>> GetPackage(string packageIdentifier)
+        public async Task<ActionResult<ApplicationDto>> GetPackage(string packageIdentifier)
         {
             var result = await _dataStore.GetApplicationByPackageIdentifierAsync(packageIdentifier);
 
@@ -85,7 +96,7 @@ namespace WingetNexus.Controllers.v2
         /// <param name="packageForm"></param>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult<Application>> Post([FromBody] Application packageForm)
+        public async Task<ActionResult<ApplicationDto>> Post([FromBody] ApplicationDto packageForm)
         {
             var hasValidationErrors = false;
             string validationErrors = "";
@@ -94,17 +105,20 @@ namespace WingetNexus.Controllers.v2
 
             if (hasValidationErrors)
             {
-                return StatusCode(500, validationErrors);
+                return StatusCode(400, validationErrors);
             }
 
-            var identifier = $"{packageForm.Publisher.Name.Replace(" ", "")}.{packageForm.Name.Replace(" ", "")}";
-            if (_dataStore.GetApplicationByPackageIdentifierAsync(identifier) != null)
+            var identifier = $"{packageForm.Publisher.Replace(" ", "")}.{packageForm.Name.Replace(" ", "")}";
+            if (await _dataStore.GetAppCountByIdentyifierAsync(identifier) > 0)
             {
-                return StatusCode(500, "Package identifier must be unique");
+                return StatusCode(400, "Package identifier must be unique");
             }
+
+            packageForm.PackageIdentifier = identifier;
+
             
 
-            var package = new Application(identifier, packageForm.Name, packageForm.Publisher);
+            //var package = new ApplicationDto(identifier, packageForm.Name, packageForm.Publisher);
 
             //package.Versions = new List<Version>();
 
@@ -140,7 +154,7 @@ namespace WingetNexus.Controllers.v2
             //    package.Versions.Add(version);
             //}
 
-            var newApp = await _dataStore.CreateApplicationAsync(package);
+            var newApp = await _dataStore.CreateApplicationAsync(packageForm);
 
             return Ok(newApp);
         }
@@ -212,7 +226,7 @@ namespace WingetNexus.Controllers.v2
             return NoContent();
         }
 
-        private void ValidateUpdateForm(Application packageForm, ref bool hasValidationErrors, ref string validationErrors)
+        private void ValidateUpdateForm(ApplicationDto packageForm, ref bool hasValidationErrors, ref string validationErrors)
         {
             if (packageForm == null)
             {
@@ -239,7 +253,7 @@ namespace WingetNexus.Controllers.v2
             }
         }
 
-        private void ValidateCreateForm(Application packageForm, ref bool hasValidationErrors, ref string validationErrors)
+        private void ValidateCreateForm(ApplicationDto packageForm, ref bool hasValidationErrors, ref string validationErrors)
         {
             if (packageForm == null)
             {

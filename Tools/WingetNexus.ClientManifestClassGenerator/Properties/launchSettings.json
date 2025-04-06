@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "WingetNexus.ClientManifestClassGenerator": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

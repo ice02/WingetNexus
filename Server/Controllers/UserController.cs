@@ -1,6 +1,6 @@
 ﻿using WingetNexus.Data.DataStores;
+using WingetNexus.Shared.Mappers.AutoMapperProfiles;
 using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
-using WingetNexus.Server.Mappers;
 
 namespace WingetNexus.Server.Controllers;
 

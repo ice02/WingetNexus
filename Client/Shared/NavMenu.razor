@@ -20,7 +20,13 @@
             <MudNavLink Href="userinfos" Icon="@Icons.Material.Filled.VerifiedUser"> UserInfos </MudNavLink>
             @* <AuthorizeView Policy="IsAdmin">
                 <Authorized Context="adminCtx"> *@
-                    <MudNavLink Href="usersadmin" Icon="@Icons.Material.Filled.People"> Users administration </MudNavLink>
+            <MudNavGroup Title="Admin zone" Expanded="true">
+                <MudNavLink Href="tanants-admin" Icon="@Icons.Material.Filled.GroupWork"> Tenants </MudNavLink>
+                <MudNavLink Href="usersadmin" Icon="@Icons.Material.Filled.People"> Users </MudNavLink>
+                <MudNavLink Href="publisher-admin" Icon="@Icons.Material.Filled.Publish"> Publishers </MudNavLink>
+            </MudNavGroup>
+                    
+                    
                 @* </Authorized>
             </AuthorizeView> *@
             

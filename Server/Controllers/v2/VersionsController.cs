@@ -1,48 +1,45 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using WingetNexus.Controllers.v1;
-using WingetNexus.Data;
-using WingetNexus.Shared.Models.Dtos;
-using Microsoft.IdentityModel.Tokens;
-using WingetNexus.Shared.Models.Db;
+﻿using WingetNexus.Shared.Models.Dtos;
 using WingetNexus.Data.DataStores;
-using WingetNexus.Server.Mappers;
-using Microsoft.EntityFrameworkCore;
 
 namespace WingetNexus.Server.Controllers.v2
 {
-    [Route("api/v1/[controller]")]
+    [Route("api/v2/[controller]")]
     [ApiController]
     [Authorize(Policy = "IsAuthorized", AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
     public class VersionsController : ControllerBase
     {
-        private readonly WingetNexusContext _context;
-        private readonly ILogger<PackagesController> _logger;
+        private readonly ILogger<VersionsController> _logger;
         private readonly IConfiguration _configuration;
         private readonly IHostEnvironment _env;
-        private readonly IWingetNexusDataStore _dataStore;
+        private readonly IVersionDatastore _versionDatastore;
+        private readonly IWingetAppDatastore _wingetAppDatastore;
 
-        public VersionsController(WingetNexusContext context, ILogger<PackagesController> logger, IConfiguration configuration, IHostEnvironment env, IWingetNexusDataStore dataStore)
+        public VersionsController(
+            ILogger<VersionsController> logger, 
+            IConfiguration configuration, 
+            IHostEnvironment env, 
+            IVersionDatastore dataStore,
+            IWingetAppDatastore wingetAppDatastore)
         {
-            _context = context;
             _logger = logger;
             _configuration = configuration;
             _env = env;
-            _dataStore = dataStore;
+            _versionDatastore = dataStore;
+            _wingetAppDatastore = wingetAppDatastore;
         }
 
         [HttpPost("{packageIdentifier}")]
         [ValidateAntiForgeryToken]
         [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
-        public async Task<ActionResult<Package>> PostVersion([FromBody] VersionDto versionForm, string packageIdentifier)
+        public async Task<ActionResult<VersionDto>> PostVersion([FromBody] VersionDto versionForm, string packageIdentifier)
         {
             var hasValidationErrors = false;
             string validationErrors = "";
-            PackageVersion version = null;
+            VersionDto version = null;
 
             _logger.LogDebug($"Creating new version");
 
-            var pck = _context.Packages.FirstOrDefault(p=>p.Identifier == packageIdentifier);
+            var pck = await _wingetAppDatastore.GetApplicationByPackageIdentifierAsync(packageIdentifier);
             if (pck == null)
             {
                 _logger.LogDebug($"Package not found for identifier {packageIdentifier}");
@@ -59,35 +56,27 @@ namespace WingetNexus.Server.Controllers.v2
 
             try
             {
-                version = new PackageVersion
-                {
-                    ShortDescription = versionForm.ShortDescription,
-                    VersionCode = versionForm.VersionCode,
-                    Package = pck,
-                    Identifier = versionForm.Identifier,
-                    PackageLocale = versionForm.PackageLocale
-                };
+                //versionForm.Application = pck;
 
-                if (versionForm.Installers != null && versionForm.Installers.Count > 0)
-                {
-                    if (version.Installers == null)
-                    {
-                        version.Installers = new List<Installer>();
-                    }
+                //if (versionForm.Installers != null && versionForm.Installers.Count > 0)
+                //{
+                //    if (version.Installers == null)
+                //    {
+                //        version.Installers = new List<Installer>();
+                //    }
 
-                    foreach (var item in versionForm.Installers)
-                    {
-                        version.Installers.Add(_dataStore.CreateInstaller(item));
-                    }
-                }
+                //    foreach (var item in versionForm.Installers)
+                //    {
+                //        version.Installers.Add(_dataStore.CreateInstaller(item));
+                //    }
+                //}
 
-                _context.PackageVersions.Add(version);
-                await _context.SaveChangesAsync();
-                _logger.LogDebug("Saved to db");
+                version = await _versionDatastore.CreateVersionAsync(versionForm);
+                _logger.LogDebug("Version created");
             }
             catch (Exception e)
             {
-                _logger.LogWarning($"Error committing to the database: {e}");
+                _logger.LogWarning($"Error creating new version: {e}");
                 return StatusCode(500, "Database error");
             }
 
@@ -103,11 +92,10 @@ namespace WingetNexus.Server.Controllers.v2
         [HttpPut("{versionId}")]
         [ValidateAntiForgeryToken]
         [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
-        public async Task<ActionResult<Package>> PutVersion([FromBody] VersionDto versionForm, int versionId)
+        public async Task<ActionResult<VersionDto>> PutVersion([FromBody] VersionDto versionForm, int versionId)
         {
             var hasValidationErrors = false;
             string validationErrors = "";
-            PackageVersion version = null;
 
             _logger.LogDebug($"Updating version {versionId}");
 
@@ -125,74 +113,46 @@ namespace WingetNexus.Server.Controllers.v2
                 return StatusCode(500, validationErrors);
             }
 
+            VersionDto result = null;
             try
             {
-                version = _context.PackageVersions
-                    .Include(p => p.Installers)
-                    //.Include(p => p.Locales)
-                    .Include(p => p.DefaultLocale)
-                    .Include(p => p.Package)
-                    .FirstOrDefault(p => p.Id == versionId);
-
-                if (version == null)
+                result = await _versionDatastore.UpdateVersionAsync(versionForm);
+                if (result == null)
                 {
                     _logger.LogDebug($"Version not found for id {versionId}");
                     return StatusCode(204, "Version not found");
                 }
 
-                version.Channel = versionForm.Channel;
-                version.Identifier = versionForm.Identifier;
-                version.PackageLocale = versionForm.PackageLocale;
-                version.ShortDescription = versionForm.ShortDescription;
-                version.VersionCode = versionForm.VersionCode;
-
-                var report = _context.PackageVersions.Update(version);
-                version = report.Entity;
-
-                //TODO: report changes for debugging
-
-
-                await _context.SaveChangesAsync();
-                _logger.LogDebug("Updated to db");
+                // debug logs
+                _logger.LogDebug($"Version {result.VersionNumber} for application {result.Application.PackageIdentifier} updated");
             }
             catch (Exception e)
             {
-                _logger.LogWarning($"Error committing to the database: {e}");
-                return StatusCode(500, "Database error");
+                _logger.LogCritical(e, $"Error during update: {e.Message}");
+                return StatusCode(500, "Update error");
             }
 
-            return Ok(version);
+            return Ok(result);
         }
 
         [HttpDelete("{versionId}")]
         [ValidateAntiForgeryToken]
         [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
-        public async Task<ActionResult<Package>> DeleteVersion(int versionId)
+        public async Task<ActionResult<bool>> DeleteVersion(int versionId)
         {
-            PackageVersion version = null;
+            //PackageVersion version = null;
 
             _logger.LogDebug($"Deleting version {versionId}");
 
             try
             {
-                version = _context.PackageVersions
-                    .FirstOrDefault(p => p.Id == versionId);
-
-                if (version == null)
-                {
-                    _logger.LogDebug($"Version not found for id {versionId}");
-                    return StatusCode(204, "Version not found");
-                }
-
-                _context.PackageVersions.Remove(version);
-
-                await _context.SaveChangesAsync();
-                _logger.LogDebug("Deleted from db");
+                var result = await _versionDatastore.DeleteVersionAsync(versionId);
+                _logger.LogDebug("Version deleted");
             }
             catch (Exception e)
             {
-                _logger.LogWarning($"Error committing to the database: {e}");
-                return StatusCode(500, "Database error");
+                _logger.LogCritical(e, $"Error deleting version: {e}");
+                return StatusCode(500, "Deleting error");
             }
 
             return NoContent();
@@ -210,63 +170,63 @@ namespace WingetNexus.Server.Controllers.v2
             }
             else
             {
-                if (string.IsNullOrEmpty(versionForm.Identifier))
+                if (string.IsNullOrEmpty(versionForm.ApplicationIdentifier))
                 {
                     hasValidationErrors = true;
                     validationErrors += "Package identifier is missing";
                 }
-                if (string.IsNullOrEmpty(versionForm.VersionCode))
+                if (string.IsNullOrEmpty(versionForm.VersionNumber))
                 {
                     hasValidationErrors = true;
                     validationErrors += "Version code is missing";
                 }
-                if (string.IsNullOrEmpty(versionForm.PackageLocale))
+                if (string.IsNullOrEmpty(versionForm.DefaultLocaleKey))
                 {
                     hasValidationErrors = true;
-                    validationErrors += "Package locale is missing";
+                    validationErrors += "Package default locale is missing";
                 }
                 if (string.IsNullOrEmpty(versionForm.ShortDescription))
                 {
                     hasValidationErrors = true;
                     validationErrors += "Short description is missing";
                 }
-                if (versionForm.Installers != null && versionForm.Installers.Count > 0)
-                {
-                    foreach (var item in versionForm.Installers)
-                    {
-                        if (string.IsNullOrEmpty(item.Architecture))
-                        {
-                            hasValidationErrors = true;
-                            validationErrors += "Installer architecture is missing";
-                        }
-                        if (string.IsNullOrEmpty(item.InstallerSha256))
-                        {
-                            hasValidationErrors = true;
-                            validationErrors += "Installer SHA256 is missing";
-                        }
-                        if (string.IsNullOrEmpty(item.InstallerPath))
-                        {
-                            hasValidationErrors = true;
-                            validationErrors += "Installer URL is missing";
-                        }
-                        if (string.IsNullOrEmpty(item.InstallerType))
-                        {
-                            hasValidationErrors = true;
-                            validationErrors += "Installer type is missing";
-                        }
-                        if (string.IsNullOrEmpty(item.Scope))
-                        {
-                            hasValidationErrors = true;
-                            validationErrors += "Installer scope is missing";
-                        }
-                        if (item.Switches == null)
-                        {
-                            hasValidationErrors = true;
-                            validationErrors += "Installer form is missing switches";
-                        }
+                //if (versionForm.Installers != null && versionForm.Installers.Count > 0)
+                //{
+                //    foreach (var item in versionForm.Installers)
+                //    {
+                //        if (string.IsNullOrEmpty(item.Architecture))
+                //        {
+                //            hasValidationErrors = true;
+                //            validationErrors += "Installer architecture is missing";
+                //        }
+                //        if (string.IsNullOrEmpty(item.InstallerSha256))
+                //        {
+                //            hasValidationErrors = true;
+                //            validationErrors += "Installer SHA256 is missing";
+                //        }
+                //        if (string.IsNullOrEmpty(item.InstallerPath))
+                //        {
+                //            hasValidationErrors = true;
+                //            validationErrors += "Installer URL is missing";
+                //        }
+                //        if (string.IsNullOrEmpty(item.InstallerType))
+                //        {
+                //            hasValidationErrors = true;
+                //            validationErrors += "Installer type is missing";
+                //        }
+                //        if (string.IsNullOrEmpty(item.Scope))
+                //        {
+                //            hasValidationErrors = true;
+                //            validationErrors += "Installer scope is missing";
+                //        }
+                //        if (item.Switches == null)
+                //        {
+                //            hasValidationErrors = true;
+                //            validationErrors += "Installer form is missing switches";
+                //        }
 
-                    }
-                }
+                //    }
+                //}
             }
         }
 

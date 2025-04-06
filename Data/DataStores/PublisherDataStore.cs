@@ -5,16 +5,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WingetNexus.Shared.Entities;
+using WingetNexus.Shared.Models.Entities;
 
 namespace WingetNexus.Data.DataStores
 {
     public class PublisherDataStore : IPublisherDataStore
     {
-        private readonly WingetNexusCtx _context;
+        private readonly WingetNexusContext _context;
         private readonly ILogger<PublisherDataStore> _logger;
 
-        public PublisherDataStore(WingetNexusCtx context, ILogger<PublisherDataStore> logger)
+        public PublisherDataStore(WingetNexusContext context, ILogger<PublisherDataStore> logger)
         {
             _context = context;
             _logger = logger;

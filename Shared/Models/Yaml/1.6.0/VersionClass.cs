@@ -13,7 +13,7 @@ namespace WingetNexus.Shared.Models.Yaml.v1._6.Version
     /// A representation of a multi-file manifest representing an app version in the OWC. v1.6.0
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.1.0.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class VersionClass
+    public partial class VersionClass : IVersionClass
     {
         /// <summary>
         /// The package unique identifier

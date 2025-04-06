@@ -734,7 +734,7 @@ namespace WingetNexus.Shared.Models.Yaml.v1._7.Installer
     /// A representation of a single-file manifest representing an app installers in the OWC. v1.7.0
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.1.0.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class InstallerClass
+    public partial class InstallerClass : IInstallerClass
     {
         [Newtonsoft.Json.JsonProperty("PackageIdentifier", Required = Newtonsoft.Json.Required.Always)]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

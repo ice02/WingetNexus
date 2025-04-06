@@ -32,7 +32,7 @@
 else
 { *@
 
-    <MudDataGrid Elevation="25" Class="ma-4" Loading=@isLoading FixedHeader="true" ServerData="LoadGridData" T="PackageDto" @ref="_dataGrid" >
+    <MudDataGrid Elevation="25" Class="ma-4" Loading=@isLoading FixedHeader="true" ServerData="LoadGridData" T="ApplicationDto" @ref="_dataGrid" >
         <NoRecordsContent>
             <MudText Class="mt-1">No application found</MudText>
         </NoRecordsContent>
@@ -45,21 +45,21 @@ else
         <Columns>
             <PropertyColumn Property="x => x.Publisher" />
             <PropertyColumn Property="x => x.Name" />
-            <PropertyColumn Property="x => x.Identifier" />
+            <PropertyColumn Property="x => x.PackageIdentifier" />
             <PropertyColumn Property="x => x.Versions" Title="Latest version">
                 <CellTemplate>
-                    @context.Item.Versions.OrderByDescending(p => p.DateAdded).FirstOrDefault()?.VersionCode
+                    @context.Item.LatestVersion?.VersionNumber ?? "No available version"
                 </CellTemplate>
             </PropertyColumn>
             <TemplateColumn CellClass="d-flex justify-end">
                 <CellTemplate>
                     <MudIconButton Size="@Size.Small" Color="Color.Primary" Icon="@Icons.Material.Outlined.Edit" @onclick="@(()=>OpenDialogUpdate(@context.Item))" />
-                    <MudIconButton Size="@Size.Small" Color="Color.Secondary" Icon="@Icons.Material.Outlined.Delete" @onclick="@(()=>Delete(@context.Item.Identifier))" />
+                    <MudIconButton Size="@Size.Small" Color="Color.Secondary" Icon="@Icons.Material.Outlined.Delete" @onclick="@(()=>Delete(@context.Item.PackageIdentifier))" />
                 </CellTemplate>
             </TemplateColumn>
         </Columns>
         <PagerContent>
-            <MudDataGridPager T="PackageDto" />
+            <MudDataGridPager T="ApplicationDto" />
         </PagerContent>
     </MudDataGrid>
     
@@ -77,14 +77,14 @@ else
 
     public class PackageListDto
     {
-        public IEnumerable<PackageDto> Items { get; set; }
+        public IEnumerable<ApplicationDto> Items { get; set; }
         public int ItemTotalCount { get; set; } = 0; // The total count of items before paging
     }
 
-    private MudDataGrid<PackageDto>? _dataGrid;
+    private MudDataGrid<ApplicationDto>? _dataGrid;
 
     private string searchString = "";
-    private IEnumerable<PackageDto> packages = new List<PackageDto>();
+    private IEnumerable<ApplicationDto> packages = new List<ApplicationDto>();
     private bool isLoading = false;
     private bool noPackage = false;
 
@@ -104,7 +104,7 @@ else
         //await GetPackages();
     }
 
-    private async Task<GridData<PackageDto>> LoadGridData(GridState<PackageDto> state)
+    private async Task<GridData<ApplicationDto>> LoadGridData(GridState<ApplicationDto> state)
     {
         _requestDto.Page = state.Page;
         _requestDto.PageSize = state.PageSize;
@@ -112,10 +112,10 @@ else
         PackageListDto apiResponse = await GetPackagesFiltered(_requestDto);
         if (apiResponse == null || apiResponse.Items == null)
         {
-            return new GridData<PackageDto>();
+            return new GridData<ApplicationDto>();
         }
 
-        GridData<PackageDto> data = new()
+        GridData<ApplicationDto> data = new()
             {
                 Items = apiResponse.Items,
                 TotalItems = apiResponse.ItemTotalCount
@@ -148,11 +148,11 @@ else
 
                 if (string.IsNullOrEmpty(request.SearchTerm))
                 {
-                    res = await client.GetAsync($"api/v1/packages/page/{request.Page}/size/{request.PageSize}");
+                    res = await client.GetAsync($"api/v2/packages?page={request.Page}&pageSize={request.PageSize}");
                 }
                 else
                 {
-                    res = await client.GetAsync($"api/v1/packages/page/{request.Page}/size/{request.PageSize}/search/{request.SearchTerm}");
+                    res = await client.GetAsync($"api/v2/packages?page={request.Page}&pageSize={request.PageSize}&filter={request.SearchTerm}");
                 }
                 
                 if (!res.IsSuccessStatusCode)
@@ -162,7 +162,7 @@ else
                 else
                 {
 
-                    result.Items = await res?.Content?.ReadFromJsonAsync<IEnumerable<PackageDto>>();
+                    result.Items = await res?.Content?.ReadFromJsonAsync<IEnumerable<ApplicationDto>>();
                     result.ItemTotalCount = int.Parse(res.Headers.GetValues("X-Total-Count").FirstOrDefault());
                     if (result.Items == null || result.Items.Count() == 0)
                     {
@@ -193,37 +193,39 @@ else
         NavigationManager.NavigateTo("/packageEdit");
     }
 
-    private void OpenDialogUpdate(PackageDto package)
+    private void OpenDialogUpdate(ApplicationDto package)
     {
-        NavigationManager.NavigateTo("/packageEdit/" + package.Identifier);
+        NavigationManager.NavigateTo("/packageEdit/" + package.PackageIdentifier);
     }
 
     private async Task OpenDialogQuickAdd()
     {
         var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<AddPackage>("Add a new application with a version", options);
+        var dialog = await DialogService.ShowAsync<AddApplication>("Add a new application", options);
 
         var result = await dialog.Result;
 
         if (!result.Canceled)
         {
-            var data = result.Data as PackageDto;
-            using (client = await httpClientFactory.CreateClientAsync())
-            {
-                var res = await client.PostAsJsonAsync($"api/v1/packages", data);
+            var data = result.Data as ApplicationDto;
+            //redirect to the edit page using data.PackageIdentifier parameter
+            NavigationManager.NavigateTo("/packageEdit/" + data.PackageIdentifier);
+            // using (client = await httpClientFactory.CreateClientAsync())
+            // {
+            //     var res = await client.PostAsJsonAsync($"api/v2/packages", data);
 
-                if (!res.IsSuccessStatusCode)
-                {
-                    var error = await res.Content.ReadAsStringAsync();
-                    snackBar.Add(error, Severity.Error);
-                }
-                else
-                {
-                    snackBar.Add("Application added successfully.", Severity.Success);
-                    //await GetPackages();
-                    await _dataGrid.ReloadServerData();
-                }
-            }
+            //     if (!res.IsSuccessStatusCode)
+            //     {
+            //         var error = await res.Content.ReadAsStringAsync();
+            //         snackBar.Add(error, Severity.Error);
+            //     }
+            //     else
+            //     {
+            //         snackBar.Add("Application added successfully.", Severity.Success);
+            //         //await GetPackages();
+            //         await _dataGrid.ReloadServerData();
+            //     }
+            // }
         }
     }
 

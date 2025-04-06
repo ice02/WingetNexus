@@ -12,11 +12,11 @@ namespace WingetNexus.Data.DataStores
 {
     public class ApplicationDatastore : IApplicationDatastore
     {
-        private readonly ILogger<WingetNexusDataStore> _logger;
+        private readonly ILogger<ApplicationDatastore> _logger;
         private readonly IConfiguration _configuration;
         private AppDbContext _context;
 
-        public ApplicationDatastore(ILogger<WingetNexusDataStore> logger, IConfiguration configuration, AppDbContext context)
+        public ApplicationDatastore(ILogger<ApplicationDatastore> logger, IConfiguration configuration, AppDbContext context)
         {
             _logger = logger;
             _configuration = configuration;

@@ -18,12 +18,12 @@
     {
         <MudList>
 
-            @foreach (var item in Version.Installers)
+            @* @foreach (var item in Version.Installers)
             {
                 <MudListItem>
                     <InstallerInfos Installer="@item" />
                 </MudListItem>
-            }
+            } *@
 
         </MudList>
     }
@@ -32,6 +32,7 @@
 
 @code {
     [Parameter] public VersionDto Version { get; set; }
+    [Parameter] public String? ManifestVersion { get; set; }
 
     HttpClient httpClient = null;
 
@@ -71,12 +72,12 @@
                     Version = new VersionDto();
                 }
 
-                if (Version.Installers == null)
-                {
-                    Version.Installers = new List<InstallerDto>();
-                }
+                // if (Version.Installers == null)
+                // {
+                //     Version.Installers = new List<InstallerDto>();
+                // }
 
-                Version.Installers.Add(data);
+                // Version.Installers.Add(data);
             }
             else
             {

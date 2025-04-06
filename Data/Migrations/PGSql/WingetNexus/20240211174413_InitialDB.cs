@@ -174,7 +174,7 @@ namespace WingetNexus.Data.Migrations.PGSql.WingetNexus
             migrationBuilder.CreateIndex(
                 name: "IX_Packages_Identifier",
                 table: "Packages",
-                column: "Identifier",
+                column: "PackageIdentifier",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -190,7 +190,7 @@ namespace WingetNexus.Data.Migrations.PGSql.WingetNexus
             migrationBuilder.CreateIndex(
                 name: "IX_PackageVersions_PackageId_VersionCode",
                 table: "PackageVersions",
-                columns: new[] { "PackageId", "VersionCode" },
+                columns: new[] { "PackageId", "VersionNumber" },
                 unique: true);
 
             migrationBuilder.CreateIndex(

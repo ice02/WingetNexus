@@ -1,13 +1,17 @@
 using System;
 using System.Collections.Generic;
 
-namespace WingetNexus.Shared.Entities
+namespace WingetNexus.Shared.Models.Entities
 {
     public class Application
     {
+        public Application()
+        {
+        }
+
         public Application(string identifier, string name, Publisher publisher)
         {
-            Identifier = identifier;
+            PackageIdentifier = identifier;
             Name = name;
             Publisher = publisher;
         }
@@ -24,6 +28,8 @@ namespace WingetNexus.Shared.Entities
 
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public DateTime ModifiedDate { get; set; } = DateTime.Now;
-        public string Identifier { get; }
+
+        public string UserCreated { get; set; } = string.Empty;
+        public string UserLastModified { get; set; } = string.Empty;
     }
 }

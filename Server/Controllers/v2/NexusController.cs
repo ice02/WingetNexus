@@ -5,7 +5,7 @@ using WingetNexus.Shared.Models;
 
 namespace WingetNexus.Controllers.v2
 {
-    [Route("api/v1/[controller]")]
+    [Route("api/v2/[controller]")]
     [ApiController]
     public class NexusController : ControllerBase
     {

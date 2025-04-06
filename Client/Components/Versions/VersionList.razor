@@ -46,8 +46,8 @@
                                 <div class="d-flex">
                                 <MudIconButton Variant="Variant.Filled" Class="d-flex ml-2" Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" @onclick="(e=> UpdateVersion(version))" />
                                     <MudIconButton Variant="Variant.Filled" Class="d-flex ml-2 mr-2" Icon="@Icons.Material.Filled.DeleteForever" Color="Color.Secondary" @onclick="(e=> OnDeleteVersionButtonClicked(version.Id))" />
-                                    <MudText Class="mt-2">Version @version.VersionCode</MudText>
-                                    <MudText Overlap="true" Class="d-flex ml-auto mr-4 mt-2">created @version.DateAdded</MudText>
+                                    <MudText Class="mt-2">Version @version.VersionNumber</MudText>
+                                    <MudText Overlap="true" Class="d-flex ml-auto mr-4 mt-2">created @version.CreatedDate</MudText>
                                 </div>
                             </TitleContent>
                             <ChildContent>
@@ -64,7 +64,7 @@
 
 
 @code {
-    [Parameter] public PackageDto? Package { get; set; }
+    [Parameter] public ApplicationDto? Package { get; set; }
 
     private string searchString = "";
     private bool isLoading = false;
@@ -103,9 +103,7 @@
             return true;
         if (version.ShortDescription.Contains(searchString, StringComparison.OrdinalIgnoreCase))
             return true;
-        if (version.PackageLocale.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (version.VersionCode.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+        if (version.VersionNumber.Contains(searchString, StringComparison.OrdinalIgnoreCase))
             return true;
         return false;
     }
@@ -121,7 +119,7 @@
             CloseButton = true 
         };
 
-        var version = new VersionDto { Identifier = Package.Identifier };
+        var version = new VersionDto { ApplicationIdentifier = Package.PackageIdentifier };
         var parameters = new DialogParameters<AddVersion> { { x => x.Version, version } };
 
         var dialog = await DialogService.ShowAsync<AddVersion>($"Update {Package.Name}", parameters, options);
@@ -132,7 +130,7 @@
         {
             var data = result.Data as VersionDto;
 
-            var res = await httpClient.PostAsJsonAsync($"api/v1/versions/{Package.Identifier}", data);
+            var res = await httpClient.PostAsJsonAsync($"api/v2/versions/{Package.PackageIdentifier}", data);
 
             if (!res.IsSuccessStatusCode)
             {

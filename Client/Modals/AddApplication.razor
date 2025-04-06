@@ -1,0 +1,147 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Headers
+
+@attribute [Authorize]
+@inject IAntiforgeryHttpClientFactory httpClientFactory
+
+@inject MudBlazor.ISnackbar snackBar
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors" Model="@modelP">
+                    <MudPaper Class="mud-width-full ma-4 pa-4">
+                        <MudTextField T="string" Label="Name" Required="true" RequiredError="Package name is required!"
+                                      For="@(() => modelP.Name)" ValueChanged="OnNameChanged" />
+                        <MudAutocomplete T="string" Label="Publisher" Required="true" 
+                                         RequiredError="Publisher is required!" CoerceValue=true
+                                         ShowProgressIndicator="true"
+                                         AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary"
+                                         For="@(() => modelP.Publisher)" ValueChanged="OnPublisherChanged"
+                                         SearchFunc="SearchPublishers" />
+                        <MudTextField T="string" Label="Package Identifier" ReadOnly="true"
+                                      @bind-Value="modelP.PackageIdentifier" For="@(() => modelP.PackageIdentifier)"
+                                      Adornment="Adornment.End" AdornmentIcon="@packageIdentifierIcon" AdornmentColor="@adormentColor" />
+                        @if (errors.Length > 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Error">@errors[0]</MudText>
+                        }
+                    </MudPaper>
+                </MudForm>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Disabled="!success">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool success;
+    private string[] errors = { };
+    private MudForm? form;
+    private Color adormentColor = Color.Primary;
+    private string packageIdentifierIcon = Icons.Material.Filled.CheckCircle; // Default to green check mark
+
+    HttpClient client = null;
+
+    ApplicationDto modelP = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = await httpClientFactory.CreateClientAsync();
+    }
+
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    private async Task OnNameChanged(string newValue)
+    {
+        modelP.Name = newValue;
+        await RecalculatePackageIdentifier();
+    }
+
+    private async Task OnPublisherChanged(string newValue)
+    {
+        modelP.Publisher = newValue;
+        await RecalculatePackageIdentifier();
+    }
+
+    private async Task RecalculatePackageIdentifier()
+    {
+        modelP.PackageIdentifier = $"{modelP.Publisher}.{modelP.Name}";
+        await ValidatePackageIdentifierUniqueness();
+    }
+
+    private async Task ValidatePackageIdentifierUniqueness()
+    {
+        var response = await client.GetAsync("api/v2/packages/checkUnicity?identifier=" + modelP.PackageIdentifier);
+        if (response.IsSuccessStatusCode)
+        {
+            var res = await response.Content.ReadFromJsonAsync<bool>();
+            if (!res)
+            {
+                errors = new string[] { "Package already exists" };
+                success = false;
+                adormentColor = Color.Error;
+                packageIdentifierIcon = Icons.Material.Filled.Cancel; // Red cross
+            }
+            else
+            {
+                errors = Array.Empty<string>();
+                success = true;
+                adormentColor = Color.Success;
+                packageIdentifierIcon = Icons.Material.Filled.CheckCircle; // Green check mark
+            }
+
+            StateHasChanged();
+        }
+        else
+        {
+            // technical issue
+            errors = new string[] { "Technical issue, please retry later" };
+            success = false;
+            packageIdentifierIcon = Icons.Material.Filled.Cancel; // Red cross
+        }
+    }
+
+    private async Task<IEnumerable<string>> SearchPublishers(string value)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length < 3)
+        {
+            return new List<string>();
+        }
+
+        var response = await client.GetAsync($"api/v2/publishers/search/{value}");
+        if (response.IsSuccessStatusCode)
+        {
+            var publishers = await response.Content.ReadFromJsonAsync<List<string>>();
+            return publishers ?? new List<string>();
+        }
+
+        return new List<string>();
+    }
+
+    async Task Submit()
+    {
+        if (success)
+        {
+            // create the package using api
+            var response = await client.PostAsJsonAsync<ApplicationDto>("api/v2/packages", modelP);
+            if (!response.IsSuccessStatusCode)
+            {
+                snackBar.Add("Failed to create package", Severity.Error);
+                return;
+            }
+            else
+            {
+                // get response from content and deseralize it as Applicationdto            
+                var application = await response.Content.ReadFromJsonAsync<ApplicationDto>();
+                MudDialog.Close(DialogResult.Ok(application));
+            }
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

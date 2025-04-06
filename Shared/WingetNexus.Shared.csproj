@@ -7,6 +7,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Models\Db\**" />
+	  <EmbeddedResource Remove="Models\Db\**" />
+	  <None Remove="Models\Db\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="AutoMapper" Version="14.0.0" />
+	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
 	  <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	  <PackageReference Include="Octokit" Version="14.0.0" />
 	</ItemGroup>

@@ -43,7 +43,7 @@
 
     private bool IsEdit = true;
 
-    PackageDto modelP = new ();
+    ApplicationDto modelP = new ();
     VersionDto modelV = new();
     InstallerDto modelI = new();
 
@@ -51,7 +51,7 @@
     {
         client = await httpClientFactory.CreateClientAsync();
 
-        modelV.VersionCode = "1.0.0";
+        modelV.VersionNumber = "1.0.0";
         modelI.Architecture = "x64";
     }
 
@@ -80,7 +80,7 @@
             name: "\"files\"",
             fileName: file.Name);
 
-        var result = await client.PostAsync($"api/v1/files", content);
+        var result = await client.PostAsync($"api/v2/files", content);
         if (result.IsSuccessStatusCode)
         {
             var resultContent = await result.Content.ReadFromJsonAsync<IList<UploadResult>>();
@@ -138,19 +138,19 @@
     void Submit() 
     {
         //!form.IsValid || Version == null ||
-        if (string.IsNullOrEmpty(modelV.VersionCode) || string.IsNullOrEmpty(modelV.ShortDescription))
+        if (string.IsNullOrEmpty(modelV.VersionNumber) || string.IsNullOrEmpty(modelV.ShortDescription))
         {
             snackBar.Add("Mandatory informations are missing", Severity.Warning);
             return;
         }
 
-        modelP.Identifier = $"{modelP.Publisher}.{modelP.Name}";
+        modelP.PackageIdentifier = $"{modelP.Publisher}.{modelP.Name}";
 
-        modelV.VersionCode = modelV.VersionCode;
+        modelV.VersionNumber = modelV.VersionNumber;
         modelV.ShortDescription = modelV.ShortDescription;
-        modelV.Identifier = modelP.Identifier;
+        modelV.ApplicationIdentifier = modelP.PackageIdentifier;
 
-        modelV.Installers.Add(modelI);
+        //modelV.Installers.Add(modelI);
 
         modelP.Versions.Add(modelV);
 

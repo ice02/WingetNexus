@@ -35,16 +35,25 @@
                 @* adding field for version form  *@            
                 @* TODO: use a component *@
                 <MudTextField T="string" Label="Version" Required="true" RequiredError="Version is required!" 
-                              @bind-Value="Version.VersionCode" For="@(() => Version.VersionCode)" />
+                @bind-Value="Version.VersionNumber" For="@(() => Version.VersionNumber)" />
                 <MudTextField T="string" Label="Short Description" Required="true" RequiredError="Description is required!"
-                              @bind-Value="Version.ShortDescription" For="@(() => Version.ShortDescription)" />
+                @bind-Value="Version.ShortDescription" For="@(() => Version.ShortDescription)" />
                 <MudTextField T="string" Label="Default locale" Required="true" RequiredError="Localization is required!"
-                              @bind-Value="Version.PackageLocale" For="@(() => Version.PackageLocale)" />
+                              @bind-Value="Version.DefaultLocaleKey" For="@(() => Version.DefaultLocaleKey)" />
+                @* create a drop downlist to choose manifest version based on a static list *@
+                <MudSelect T="string" Label="Winget cli manifest version" @bind-Value="Version.ManifestVersion">
+                    <MudSelectItem Value="1.4">1.4</MudSelectItem>
+                    <MudSelectItem Value="1.5">1.5</MudSelectItem>
+                    <MudSelectItem Value="1.6">1.6</MudSelectItem>
+                    <MudSelectItem Value="1.7">1.7</MudSelectItem>
+                    <MudSelectItem Value="1.9">1.9</MudSelectItem>
+                    <MudSelectItem Value="1.10">1.10</MudSelectItem>
+                </MudSelect>
             </MudPaper>
 
             <MudGrid>
                 <MudItem xs="12">
-                    <InstallerList Version="@Version" />
+                    <InstallerList Version="@Version" ManifestVersion="@Version.ManifestVersion" />
                 </MudItem>
             </MudGrid>
         </MudForm>
@@ -65,13 +74,26 @@
     private string[] errors = { };
     private MudForm? form;
 
+    protected async override Task OnInitializedAsync()
+    {
+        //TODO: call api to find all available manifest versions
+
+        await base.OnInitializedAsync();
+    }
+
     void Submit()
     {
-        if (string.IsNullOrEmpty(this.Version.VersionCode) || string.IsNullOrEmpty(this.Version.ShortDescription) || string.IsNullOrEmpty(this.Version.PackageLocale))
+        if (string.IsNullOrEmpty(this.Version.VersionNumber) || string.IsNullOrEmpty(this.Version.ShortDescription) || string.IsNullOrEmpty(this.Version.DefaultLocaleKey))
         {
             snackBar.Add("Mandatory informations are missing", Severity.Warning);
             return;
         }
+
+        // call api to insert version in database
+
+
+
+
 
         // if (form!.IsValid)
         // {

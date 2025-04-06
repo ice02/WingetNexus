@@ -20,10 +20,4 @@
 		<ProjectReference Include="..\Shared\WingetNexus.Shared.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Content Update="wwwroot\img\Store.png">
-	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-	  </Content>
-	</ItemGroup>
-
 </Project>

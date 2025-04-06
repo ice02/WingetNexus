@@ -23,6 +23,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WingetNexus.Server.Tests", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WingetNexus.WingetApi", "WingetApi\WingetNexus.WingetApi.csproj", "{4ED14CE0-5E1F-4946-A0AF-90241B9380F3}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WingetNexus.ClientManifestClassGenerator", "Tools\WingetNexus.ClientManifestClassGenerator\WingetNexus.ClientManifestClassGenerator.csproj", "{970D5230-56C3-DD5B-7E68-E2026E1FBEC8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,9 +57,16 @@ Global
 		{4ED14CE0-5E1F-4946-A0AF-90241B9380F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4ED14CE0-5E1F-4946-A0AF-90241B9380F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4ED14CE0-5E1F-4946-A0AF-90241B9380F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{970D5230-56C3-DD5B-7E68-E2026E1FBEC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{970D5230-56C3-DD5B-7E68-E2026E1FBEC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{970D5230-56C3-DD5B-7E68-E2026E1FBEC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{970D5230-56C3-DD5B-7E68-E2026E1FBEC8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{970D5230-56C3-DD5B-7E68-E2026E1FBEC8} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DBF8473-06FC-43AF-A14F-41F17AB93C7E}

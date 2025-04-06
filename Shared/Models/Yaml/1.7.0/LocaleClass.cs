@@ -136,7 +136,7 @@ namespace WingetNexus.Shared.Models.Yaml.v1._7.Locale
     /// A representation of a multiple-file manifest representing app metadata in other locale in the OWC. v1.7.0
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.1.0.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class LocaleClass
+    public partial class LocaleClass : ILocaleClass
     {
         /// <summary>
         /// The package unique identifier

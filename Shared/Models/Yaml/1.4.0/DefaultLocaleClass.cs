@@ -82,7 +82,7 @@ namespace WingetNexus.Shared.Models.Yaml.v1._4.DefaultLocale
     /// A representation of a multiple-file manifest representing a default app metadata in the OWC. v1.4.0
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.1.0.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class DefaultLocaleClass
+    public partial class DefaultLocaleClass : IDefaultLocaleClass
     {
         /// <summary>
         /// The package unique identifier
