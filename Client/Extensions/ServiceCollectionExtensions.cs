@@ -1,13 +1,15 @@
-﻿//using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-
-namespace WingetNexus.Client.Extensions
+﻿namespace WingetNexus.Client.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        //public static void ConfigureServices(this IServiceCollection services, WebAssemblyHostBuilder builder)
-        //{
-        //    // Register our own injectables
-        //    services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-        //}
+        public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+        {
+            services.AddSingleton<IGithubService, GithubService>();
+            services.AddSingleton<IYamlFilesService, YamlFilesService>();
+            services.AddSingleton<IApplicationService, ApplicationService>();
+            services.AddSingleton<IPackageService, PackageService>();
+
+            return services;
+        }
     }
 }

@@ -1,0 +1,241 @@
+﻿@page "/cascadinglistboxview"
+
+@using WingetNexus.Shared.Models.Github
+@using MudBlazor
+
+@inject IGithubService GithubApiService
+
+@* @rendermode InteractiveServer *@
+
+<style>
+    .cascading-list {
+    max-height: calc(60vh - 100px); /* Ajustez cette valeur selon vos besoins */
+    overflow-y: auto;
+    }
+</style>
+
+<div class="row">
+    @if (isLoading)
+    {
+        <div class="loader">Loading...</div>
+    }
+    else
+    {
+        <div class="col">
+            <MudTextField @bind-Value="FirstFilter" Placeholder="Filter..." />
+            <MudList T="DirectoryContent" @bind-SelectedValue="FirstSelected" Class="cascading-list">
+                @foreach (var item in FilteredFirstCharList)
+                {
+                    <MudListItem Value="@item">
+                        @item.Name
+                    </MudListItem>
+                }
+            </MudList>
+        </div>
+        <div class="col">
+            <MudTextField @bind-Value="SecondFilter" Placeholder="Filter..." />
+            <MudList T="DirectoryContent" @bind-SelectedValue="SecondSelected" Class="cascading-list">
+                @foreach (var item in FilteredPublisherList)
+                {
+                    <MudListItem Value="@item">
+                        @item.Name
+                    </MudListItem>
+                }
+            </MudList>
+        </div>
+        <div class="col">
+            <MudTextField @bind-Value="ThirdFilter" Placeholder="Filter..." />
+            <MudList T="DirectoryContent" @bind-SelectedValue="ThirdSelected" Class="cascading-list">
+                @foreach (var item in FilteredApplicationList)
+                {
+                    <MudListItem Value="@item">
+                        @item.Name
+                    </MudListItem>
+                }
+            </MudList>
+        </div>
+        <div class="col">
+            <MudTextField @bind-Value="FourthFilter" Placeholder="Filter..." />
+            <MudList T="DirectoryContent" @bind-SelectedValue="FourthSelected" Class="cascading-list">
+                @foreach (var item in FilteredVersionList)
+                {
+                    <MudListItem Value="@item">
+                        @item.Name
+                    </MudListItem>
+                }
+            </MudList>
+        </div>
+    }
+</div>
+
+@code {
+    private DirectoryContent? selectedContent;
+    private DirectoryContent? SelectedContent
+    {
+        get => selectedContent;
+        set
+        {
+            selectedContent = value;
+            StateHasChanged();
+        }
+    }
+
+    private List<DirectoryContent> FirstCharList { get; set; } = new();
+    private List<DirectoryContent> PublisherList { get; set; } = new();
+    private List<DirectoryContent> ApplicationList { get; set; } = new();
+    private List<DirectoryContent> VersionList { get; set; } = new();
+    private List<DirectoryContent> ContentList { get; set; } = new();
+
+    private DirectoryContent? firstSelected;
+    public DirectoryContent? FirstSelected
+    {
+        get => firstSelected;
+        set
+        {
+            firstSelected = value;
+            if (firstSelected != null)
+            {
+                _ = LoadSecondList(firstSelected.Path);
+            }
+        }
+    }
+
+    private DirectoryContent? secondSelected;
+    public DirectoryContent? SecondSelected
+    {
+        get => secondSelected;
+        set
+        {
+            secondSelected = value;
+            if (secondSelected != null)
+            {
+                _ = LoadThirdList(secondSelected.Path);
+            }
+        }
+    }
+
+    private DirectoryContent? thirdSelected;
+    public DirectoryContent? ThirdSelected
+    {
+        get => thirdSelected;
+        set
+        {
+            thirdSelected = value;
+            if (thirdSelected != null)
+            {
+                _ = LoadFourthList(thirdSelected.Path);
+            }
+        }
+    }
+
+    private DirectoryContent? fourthSelected;
+    public DirectoryContent? FourthSelected
+    {
+        get => fourthSelected;
+        set
+        {
+            fourthSelected = value;
+            if (fourthSelected != null)
+            {
+                SelectedContent = fourthSelected;
+                _ = LoadContentFromFourthList(fourthSelected.Path);
+                 OnApplicationSelected.InvokeAsync(new ApplicationInfo 
+                     { 
+                         Name = thirdSelected.Name, 
+                         FilePath = fourthSelected.Path,
+                         Publisher = secondSelected?.Name, 
+                         Version = fourthSelected?.Name 
+                     });
+            }
+        }
+    }
+
+    [Parameter]
+    public EventCallback<ApplicationInfo> OnApplicationSelected { get; set; }
+
+    private bool isLoading = true;
+
+    private string FirstFilter { get; set; } = string.Empty;
+    private string SecondFilter { get; set; } = string.Empty;
+    private string ThirdFilter { get; set; } = string.Empty;
+    private string FourthFilter { get; set; } = string.Empty;
+
+    private IEnumerable<DirectoryContent> FilteredFirstCharList => 
+        FirstCharList.Where(item => string.IsNullOrEmpty(FirstFilter) || item.Name.Contains(FirstFilter, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<DirectoryContent> FilteredPublisherList => 
+        PublisherList.Where(item => string.IsNullOrEmpty(SecondFilter) || item.Name.Contains(SecondFilter, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<DirectoryContent> FilteredApplicationList => 
+        ApplicationList.Where(item => string.IsNullOrEmpty(ThirdFilter) || item.Name.Contains(ThirdFilter, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<DirectoryContent> FilteredVersionList => 
+        VersionList.Where(item => string.IsNullOrEmpty(FourthFilter) || item.Name.Contains(FourthFilter, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        FirstCharList = (await GithubApiService.GetDirectoryContent("manifests")).ToList();
+        isLoading = false;
+    }
+
+    private async Task LoadSecondList(string path)
+    {
+        if (!string.IsNullOrEmpty(path))
+        {
+            PublisherList = (await GithubApiService.GetDirectoryContent(path)).ToList();
+            ApplicationList.Clear();
+            VersionList.Clear();
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadThirdList(string path)
+    {
+        if (!string.IsNullOrEmpty(path))
+        {
+            ApplicationList = (await GithubApiService.GetDirectoryContent(path)).ToList();
+            VersionList.Clear();
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadFourthList(string path)
+    {
+        if (!string.IsNullOrEmpty(path))
+        {
+            VersionList = (await GithubApiService.GetDirectoryContent(path)).ToList();
+
+            StateHasChanged();
+        }
+    }
+
+    public async Task LoadContentFromFourthList(string path)
+    {
+        if (!string.IsNullOrEmpty(path))
+        {
+            ContentList = (await GithubApiService.GetDirectoryContent(path)).ToList();
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task DownloadSelectedContent()
+    {
+        if (ContentList == null || !ContentList.Any())
+        {
+            return;
+        }
+
+        foreach (var item in ContentList)
+        {
+            if (SecondSelected != null && ThirdSelected != null && FourthSelected != null)
+            {
+                //await GithubApiClient.DownloadFileAsync(item.Path, SecondSelected.Name, ThirdSelected.Name, FourthSelected.Path);
+                //await GithubApiService.DownloadFile(item.Path, SecondSelected.Name, ThirdSelected.Name, FourthSelected.Path);
+            }
+        }
+    }
+}

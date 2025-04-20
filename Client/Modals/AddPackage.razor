@@ -20,7 +20,7 @@
             <MudGrid>
                 <MudItem xs="12">
                     <VersionMetadataEdit Version="@modelV" IsEdit="@IsEdit" />
-                    <InstallerEdit InstallerModel="@modelI" />
+                    @* <InstallerEdit InstallerModel="@modelI" / *@>
                 </MudItem>
             </MudGrid>
         </MudForm>
@@ -133,7 +133,7 @@
         return installerType;
     }
 
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
 
     void Submit() 
     {

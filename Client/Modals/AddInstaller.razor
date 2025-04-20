@@ -9,7 +9,7 @@
     <DialogContent>
         <MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors" Model="@Installer">
         <MudPaper Class="mud-width-full mb-4 pa-4">
-            <InstallerEdit InstallerModel="Installer" />
+            @* <InstallerEdit InstallerModel="Installer" /> *@
         </MudPaper>
         </MudForm>
 
@@ -23,7 +23,7 @@
 
 @code
 {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
 
     [Parameter] public InstallerDto Installer { get; set; }
 

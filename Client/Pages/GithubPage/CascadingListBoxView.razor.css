@@ -1,0 +1,6 @@
+﻿
+    .cascading-list {
+        max-height: calc(100vh - 100px); /* Ajustez cette valeur selon vos besoins */
+        overflow-y: auto;
+    }
+

@@ -119,36 +119,54 @@
             CloseButton = true 
         };
 
-        var version = new VersionDto { ApplicationIdentifier = Package.PackageIdentifier };
-        var parameters = new DialogParameters<AddVersion> { { x => x.Version, version } };
+        var parameters = new DialogParameters<AddVersion> { { x => x.ApplicationIdentifier, Package.PackageIdentifier } };
 
-        var dialog = await DialogService.ShowAsync<AddVersion>($"Update {Package.Name}", parameters, options);
+        var dialog = await DialogService.ShowAsync<AddVersion>($"Add a version to {Package.Name}", parameters, options);
 
         var result = await dialog.Result;
 
+        // if result is ok, add the version given as Data in the result in the list
+        // if result is not ok, show an error message
         if (!result.Canceled)
         {
             var data = result.Data as VersionDto;
-
-            var res = await httpClient.PostAsJsonAsync($"api/v2/versions/{Package.PackageIdentifier}", data);
-
-            if (!res.IsSuccessStatusCode)
+            // call api to add the version
+            // if version is not existing, just add to the collection
+            // else, update the version
+            if (Package.Versions == null)
             {
-                var error = res.ReasonPhrase;
-                snackBar.Add(error, Severity.Error);
+                Package.Versions = new List<VersionDto>();
             }
-            else
-            {
-                snackBar.Add("Version added successfully.", Severity.Success);
-                //await GetPackageVersions();
-                var addedVersion = await res.Content.ReadFromJsonAsync<VersionDto>();
-                if (addedVersion != null)
-                {
-                    Package.Versions.Add(addedVersion);
-                };
 
-            }
+            // TODO: check if it's better to refresh from DB
+            Package.Versions.Add(data);
+
+            StateHasChanged();
         }
+
+        // if (!result.Canceled)
+        // {
+        //     var data = result.Data as VersionDto;
+
+        //     var res = await httpClient.PostAsJsonAsync($"api/v2/versions/{Package.PackageIdentifier}", data);
+
+        //     if (!res.IsSuccessStatusCode)
+        //     {
+        //         var error = res.ReasonPhrase;
+        //         snackBar.Add(error, Severity.Error);
+        //     }
+        //     else
+        //     {
+        //         snackBar.Add("Version added successfully.", Severity.Success);
+        //         //await GetPackageVersions();
+        //         var addedVersion = await res.Content.ReadFromJsonAsync<VersionDto>();
+        //         if (addedVersion != null)
+        //         {
+        //             Package.Versions.Add(addedVersion);
+        //         };
+
+        //     }
+        // }
     }
 
     private async Task UpdateVersion(VersionDto? version)

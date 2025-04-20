@@ -1,0 +1,28 @@
+@using WingetNexus.Shared.Models.Github
+@using MudBlazor
+
+@* @rendermode InteractiveServer *@
+
+
+<MudStepper @bind-ActiveStepIndex="ActiveStepIndex">
+    <MudStep Label="Step 1: Select Application">
+        <CascadingListBoxView OnApplicationSelected="OnApplicationSelected" />
+    </MudStep>
+    <MudStep Label="Step 2: Download from GitHub">
+        <DownloadFromGithub @bind-ApplicationInfo="ApplicationInfo" />
+    </MudStep>
+    <MudStep Label="Step 3: Process YAML Files">
+        <ProcessYamlFiles @bind-ApplicationInfo="ApplicationInfo" />
+    </MudStep>
+</MudStepper>
+
+@code {
+    public int ActiveStepIndex { get; set; } = 0;
+    public ApplicationInfo? ApplicationInfo { get; set; }
+
+    private void OnApplicationSelected(ApplicationInfo info)
+    {
+        ApplicationInfo = info;
+        ActiveStepIndex++;
+    }
+}

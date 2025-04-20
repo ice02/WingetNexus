@@ -1,0 +1,26 @@
+﻿
+<MudSelect T="string" Label="Select Install Mode" @bind-Value="SelectedInstallMode">
+    <MudSelectItem Value="@("Silent")">Silent</MudSelectItem>
+    <MudSelectItem Value="@("SilentWithProgress")">Silent With Progress</MudSelectItem>
+    <MudSelectItem Value="@("Interactive")">Interactive</MudSelectItem>
+</MudSelect>
+
+@code {
+    private string selectedInstallMode = "Silent";
+
+    [Parameter]
+    public string SelectedInstallMode
+    {
+        get => selectedInstallMode;
+        set
+        {
+            if (selectedInstallMode != value)
+            {
+                selectedInstallMode = value;
+                SelectedInstallModeChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string> SelectedInstallModeChanged { get; set; }
+}

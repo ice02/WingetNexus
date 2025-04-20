@@ -1,0 +1,152 @@
+﻿<MudGrid>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="Silent"
+                      Label="Silent" HelperText="Silent install switch" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="SilentWithProgress"
+                      Label="Silent With Progress" HelperText="Silent with progress install switch" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="Interactive"
+                      Label="Interactive" HelperText="Interactive install switch" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="InstallLocation"
+                      Label="Install Location" HelperText="Install location switch" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="Log"
+                      Label="Log" HelperText="Log file path switch" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="Upgrade"
+                      Label="Upgrade" HelperText="Upgrade switch" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="Custom"
+                      Label="Custom" HelperText="Custom switches" />
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string? silent;
+    private string? silentWithProgress;
+    private string? interactive;
+    private string? installLocation;
+    private string? log;
+    private string? upgrade;
+    private string? custom;
+
+    [Parameter]
+    public string? Silent
+    {
+        get => silent;
+        set
+        {
+            if (silent != value)
+            {
+                silent = value;
+                SilentChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string?> SilentChanged { get; set; }
+
+    [Parameter]
+    public string? SilentWithProgress
+    {
+        get => silentWithProgress;
+        set
+        {
+            if (silentWithProgress != value)
+            {
+                silentWithProgress = value;
+                SilentWithProgressChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string?> SilentWithProgressChanged { get; set; }
+
+    [Parameter]
+    public string? Interactive
+    {
+        get => interactive;
+        set
+        {
+            if (interactive != value)
+            {
+                interactive = value;
+                InteractiveChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string?> InteractiveChanged { get; set; }
+
+    [Parameter]
+    public string? InstallLocation
+    {
+        get => installLocation;
+        set
+        {
+            if (installLocation != value)
+            {
+                installLocation = value;
+                InstallLocationChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string?> InstallLocationChanged { get; set; }
+
+    [Parameter]
+    public string? Log
+    {
+        get => log;
+        set
+        {
+            if (log != value)
+            {
+                log = value;
+                LogChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string?> LogChanged { get; set; }
+
+    [Parameter]
+    public string? Upgrade
+    {
+        get => upgrade;
+        set
+        {
+            if (upgrade != value)
+            {
+                upgrade = value;
+                UpgradeChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string?> UpgradeChanged { get; set; }
+
+    [Parameter]
+    public string? Custom
+    {
+        get => custom;
+        set
+        {
+            if (custom != value)
+            {
+                custom = value;
+                CustomChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string?> CustomChanged { get; set; }
+}

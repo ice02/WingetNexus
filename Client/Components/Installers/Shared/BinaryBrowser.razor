@@ -1,0 +1,47 @@
+﻿<MudGrid>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="InstallerPath"
+                      Label="URL to installer" HelperText="Fill with url to download installer" Required="true" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="InstallerSha256"
+                      Label="Setup file Checksum" HelperText="Fill with checksum of the setup file" Required="true" />
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string? installerPath;
+    private string? installerSha256;
+
+    [Parameter]
+    public string? InstallerPath
+    {
+        get => installerPath;
+        set
+        {
+            if (installerPath != value)
+            {
+                installerPath = value;
+                InstallerPathChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string?> InstallerPathChanged { get; set; }
+
+    [Parameter]
+    public string? InstallerSha256
+    {
+        get => installerSha256;
+        set
+        {
+            if (installerSha256 != value)
+            {
+                installerSha256 = value;
+                InstallerSha256Changed.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string?> InstallerSha256Changed { get; set; }
+}

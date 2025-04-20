@@ -1,0 +1,52 @@
+@* @page "/dynamicform"
+@using System.Text.Json
+@code {
+    [Parameter]
+    public string JsonSchema { get; set; }
+
+    [Parameter]
+    public object Model { get; set; }
+
+    private Dictionary<string, object> formData = new Dictionary<string, object>();
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(JsonSchema))
+        {
+            var schema = JsonDocument.Parse(JsonSchema).RootElement;
+            foreach (var property in schema.EnumerateObject())
+            {
+                formData[property.Name] = null;
+            }
+        }
+    }
+
+    private void HandleSubmit()
+    {
+        foreach (var kvp in formData)
+        {
+            var property = Model.GetType().GetProperty(kvp.Key);
+            if (property != null && kvp.Value != null)
+            {
+                property.SetValue(Model, Convert.ChangeType(kvp.Value, property.PropertyType));
+            }
+        }
+    }
+}
+
+<h3>Dynamic Form</h3>
+<EditForm Model="@formData" OnValidSubmit="@HandleSubmit">
+    @if (!string.IsNullOrEmpty(JsonSchema))
+    {
+        var schema = JsonDocument.Parse(JsonSchema).RootElement;
+        foreach (var property in schema.EnumerateObject())
+        {
+            <div>
+                <label>@property.Name</label>
+                <InputText @bind-Value="formData[property.Name]" />
+            </div>
+        }
+    }
+    <button type="submit">Submit</button>
+</EditForm>
+ *@

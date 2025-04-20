@@ -4,11 +4,18 @@
 @attribute [Authorize]
 
 @inject MudBlazor.ISnackbar snackBar
+@inject IAntiforgeryHttpClientFactory httpClientFactory
 
 <MudDialog>
     <DialogContent>
+        @if (Version == null)
+        {
+            <MudText Class="mt-1">Version initializing ...</MudText>
+        }
+        else
+        {
         <MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors" Model="@Version">
-            @if (errors.Length > 0)
+            @if (errors != null && errors.Length > 0)
             {
                 @* <MudAlert Severity="Severity.Error" Elevation="0" Class="mud-width-full mb-4">
                     <MudAlertTitle>Error</MudAlertTitle>
@@ -24,10 +31,12 @@
             } *@
                 <MudPaper Class="pa-4 mud-height-full">
                     <MudText Typo="Typo.subtitle2">@($"Errors ({errors.Length})")</MudText>
-                    @foreach (var error in errors)
-                    {
-                        <MudText Color="@Color.Error">@error</MudText>
-                    }
+                    
+                        @foreach (var error in errors)
+                        {
+                            <MudText Color="@Color.Error">@error</MudText>
+                        }
+                    
                 </MudPaper>
             }
 
@@ -38,25 +47,36 @@
                 @bind-Value="Version.VersionNumber" For="@(() => Version.VersionNumber)" />
                 <MudTextField T="string" Label="Short Description" Required="true" RequiredError="Description is required!"
                 @bind-Value="Version.ShortDescription" For="@(() => Version.ShortDescription)" />
-                <MudTextField T="string" Label="Default locale" Required="true" RequiredError="Localization is required!"
-                              @bind-Value="Version.DefaultLocaleKey" For="@(() => Version.DefaultLocaleKey)" />
+                <MudSelect T="string" Label="Default locale" Required="true" RequiredError="Localization is required!"
+                @bind-Value="Version.DefaultLocaleKey" For="@(() => Version.DefaultLocaleKey)">
+                    <MudSelectItem Value="@("en-US")">en-US</MudSelectItem>
+                    <MudSelectItem Value="@("fr-FR")">fr-FR</MudSelectItem>
+                </MudSelect>
                 @* create a drop downlist to choose manifest version based on a static list *@
                 <MudSelect T="string" Label="Winget cli manifest version" @bind-Value="Version.ManifestVersion">
-                    <MudSelectItem Value="1.4">1.4</MudSelectItem>
-                    <MudSelectItem Value="1.5">1.5</MudSelectItem>
-                    <MudSelectItem Value="1.6">1.6</MudSelectItem>
-                    <MudSelectItem Value="1.7">1.7</MudSelectItem>
-                    <MudSelectItem Value="1.9">1.9</MudSelectItem>
-                    <MudSelectItem Value="1.10">1.10</MudSelectItem>
+                    <MudSelectItem Value="@("1.4.0")">1.4</MudSelectItem>
+                    <MudSelectItem Value="@("1.5.0")">1.5</MudSelectItem>
+                    <MudSelectItem Value="@("1.6.0")">1.6</MudSelectItem>
+                    <MudSelectItem Value="@("1.7.0")">1.7</MudSelectItem>
+                    <MudSelectItem Value="@("1.9.0")">1.9</MudSelectItem>
+                    <MudSelectItem Value="@("1.10.0")">1.10</MudSelectItem>
                 </MudSelect>
             </MudPaper>
 
             <MudGrid>
                 <MudItem xs="12">
-                    <InstallerList Version="@Version" ManifestVersion="@Version.ManifestVersion" />
+                        @if (Version.Installers == null)
+                        {
+                            <InstallerEdit VersionModel="@Version" ManifestVersion="@Version.ManifestVersion" />
+                        }
+                        else
+                        {
+                            <InstallerList Version="@Version" ManifestVersion="@Version.ManifestVersion" />
+                        }
                 </MudItem>
             </MudGrid>
         </MudForm>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
@@ -67,38 +87,95 @@
 
 @code
 {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
-    [Parameter] public VersionDto Version { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+    [Parameter] public VersionDto? Version { get; set; }
+    [Parameter] public string? ApplicationIdentifier { get; set; }
 
     private bool success;
     private string[] errors = { };
     private MudForm? form;
+    private bool isEdit = false;
+    private HttpClient client = null;
+
 
     protected async override Task OnInitializedAsync()
     {
         //TODO: call api to find all available manifest versions
+
+        client = await httpClientFactory.CreateClientAsync();
+
+        // check if the version is null
+        if (Version == null)
+        {
+            Version = new VersionDto();
+            Version.VersionNumber = "1.0.0";
+            Version.ShortDescription = "Initial version";
+            Version.DefaultLocaleKey = "en-US";
+            Version.ManifestVersion = "1.10";
+        }
+        else
+        {
+            isEdit = true;
+        }
 
         await base.OnInitializedAsync();
     }
 
     void Submit()
     {
-        if (string.IsNullOrEmpty(this.Version.VersionNumber) || string.IsNullOrEmpty(this.Version.ShortDescription) || string.IsNullOrEmpty(this.Version.DefaultLocaleKey))
+        if (string.IsNullOrEmpty(this.Version.VersionNumber) 
+        || string.IsNullOrEmpty(this.Version.ShortDescription) 
+        || string.IsNullOrEmpty(this.Version.DefaultLocaleKey)
+        || string.IsNullOrEmpty(this.Version.ManifestVersion)
+        )
         {
             snackBar.Add("Mandatory informations are missing", Severity.Warning);
             return;
         }
 
         // call api to insert version in database
-
-
-
-
-
-        // if (form!.IsValid)
-        // {
-            MudDialog.Close(DialogResult.Ok(Version));
-        //}
+        if (!isEdit)
+        {
+            client.PostAsJsonAsync($"api/v2/versions/application/{ApplicationIdentifier}", Version)
+                .ContinueWith(task =>
+                {
+                    if (task.IsCompletedSuccessfully)
+                    {
+                        var result = task.Result;
+                        if (result.IsSuccessStatusCode)
+                        {
+                            snackBar.Add("Version added successfully", Severity.Success);
+                            var resultContent = task.Result.Content.ReadFromJsonAsync<VersionDto>();
+                            MudDialog.Close(DialogResult.Ok(resultContent));
+                        }
+                        else
+                        {
+                            snackBar.Add("Error adding version", Severity.Error);
+                        }
+                    }
+                });
+        }
+        else
+        {
+            client.PutAsJsonAsync($"api/v2/versions/{Version.Id}", Version)
+                .ContinueWith(task =>
+                {
+                    if (task.IsCompletedSuccessfully)
+                    {
+                        var result = task.Result;
+                        if (result.IsSuccessStatusCode)
+                        {
+                            snackBar.Add("Version updated successfully", Severity.Success);
+                            var resultContent = task.Result.Content.ReadFromJsonAsync<VersionDto>();
+                            MudDialog.Close(DialogResult.Ok(resultContent));
+                        }
+                        else
+                        {
+                            snackBar.Add("Error updating version", Severity.Error);
+                        }
+                    }
+                });
+        }
     }
     void Cancel() => MudDialog.Cancel();
 }

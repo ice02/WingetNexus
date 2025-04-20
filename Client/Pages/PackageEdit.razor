@@ -2,7 +2,7 @@
 @page "/packageEdit"
 
 @attribute [Authorize]
-@inject IAntiforgeryHttpClientFactory httpClientFactory
+@inject IPackageService PackageService
 
 @inject MudBlazor.ISnackbar snackBar
 @inject IDialogService DialogService
@@ -36,39 +36,17 @@
     string[] errors = { };
     MudForm form;
 
-    HttpClient client = null;
-
     private ApplicationDto package = new ApplicationDto();
 
     private bool isLoading = false;
 
     protected override async Task OnInitializedAsync()
     {
-        client = await httpClientFactory.CreateClientAsync();
-
         if (!string.IsNullOrEmpty(id))
         {
-            package = await GetPackage(id);
+            package = await PackageService.GetPackageAsync(id);
             isEdit = true;
             StateHasChanged();
         }
-    }
-
-    private async Task<ApplicationDto> GetPackage(string? id)
-    {
-        isLoading = true;
-        try
-        {
-            return await client.GetFromJsonAsync<ApplicationDto>("api/v2/packages/" + id);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-        }
-        finally
-        {
-            isLoading = false;
-        }
-        return null;
     }
 }

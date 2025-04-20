@@ -1,0 +1,25 @@
+﻿
+<MudSelect T="string" Label="Select scope" @bind-Value="SelectedScope">
+    <MudSelectItem Value="@("User")">User</MudSelectItem>
+    <MudSelectItem Value="@("Machine")">Machine</MudSelectItem>
+</MudSelect>
+
+@code {
+    private string selectedScope = "Silent";
+
+    [Parameter]
+    public string SelectedScope
+    {
+        get => selectedScope;
+        set
+        {
+            if (selectedScope != value)
+            {
+                selectedScope = value;
+                SelectedScopeChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string> SelectedScopeChanged { get; set; }
+}

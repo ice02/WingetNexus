@@ -2,7 +2,7 @@
 @using System.Net.Http.Headers
 
 @attribute [Authorize]
-@inject IAntiforgeryHttpClientFactory httpClientFactory
+@inject IPackageService PackageService
 
 @inject MudBlazor.ISnackbar snackBar
 
@@ -45,16 +45,13 @@
     private Color adormentColor = Color.Primary;
     private string packageIdentifierIcon = Icons.Material.Filled.CheckCircle; // Default to green check mark
 
-    HttpClient client = null;
-
     ApplicationDto modelP = new();
 
-    protected override async Task OnInitializedAsync()
+    @* protected override async Task OnInitializedAsync()
     {
-        client = await httpClientFactory.CreateClientAsync();
-    }
+    } *@
 
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
 
     private async Task OnNameChanged(string newValue)
     {
@@ -76,11 +73,10 @@
 
     private async Task ValidatePackageIdentifierUniqueness()
     {
-        var response = await client.GetAsync("api/v2/packages/checkUnicity?identifier=" + modelP.PackageIdentifier);
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var res = await response.Content.ReadFromJsonAsync<bool>();
-            if (!res)
+            var isUnique = await PackageService.CheckPackageIdentifierUniquenessAsync(modelP.PackageIdentifier);
+            if (!isUnique)
             {
                 errors = new string[] { "Package already exists" };
                 success = false;
@@ -94,51 +90,41 @@
                 adormentColor = Color.Success;
                 packageIdentifierIcon = Icons.Material.Filled.CheckCircle; // Green check mark
             }
-
-            StateHasChanged();
         }
-        else
+        catch
         {
-            // technical issue
             errors = new string[] { "Technical issue, please retry later" };
             success = false;
             packageIdentifierIcon = Icons.Material.Filled.Cancel; // Red cross
         }
+
+        StateHasChanged();
     }
 
-    private async Task<IEnumerable<string>> SearchPublishers(string value)
+    private async Task<IEnumerable<string>> SearchPublishers(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value) || value.Length < 3)
+        try
+        {
+            return await PackageService.SearchPublishersAsync(value);
+        }
+        catch
         {
             return new List<string>();
         }
-
-        var response = await client.GetAsync($"api/v2/publishers/search/{value}");
-        if (response.IsSuccessStatusCode)
-        {
-            var publishers = await response.Content.ReadFromJsonAsync<List<string>>();
-            return publishers ?? new List<string>();
-        }
-
-        return new List<string>();
     }
 
     async Task Submit()
     {
         if (success)
         {
-            // create the package using api
-            var response = await client.PostAsJsonAsync<ApplicationDto>("api/v2/packages", modelP);
-            if (!response.IsSuccessStatusCode)
+            try
+            {
+                var application = await PackageService.CreatePackageAsync(modelP);
+                MudDialog.Close(DialogResult.Ok(application));
+            }
+            catch
             {
                 snackBar.Add("Failed to create package", Severity.Error);
-                return;
-            }
-            else
-            {
-                // get response from content and deseralize it as Applicationdto            
-                var application = await response.Content.ReadFromJsonAsync<ApplicationDto>();
-                MudDialog.Close(DialogResult.Ok(application));
             }
         }
     }

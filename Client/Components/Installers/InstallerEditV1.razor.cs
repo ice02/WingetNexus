@@ -5,10 +5,11 @@ using WingetNexus.Shared.Models.Dtos;
 
 namespace WingetNexus.Client.Components.Installers
 {
-    public partial class InstallerEdit
+    public partial class InstallerEditV1
     {
-        [Parameter]
-        public InstallerDto InstallerModel { get; set; }
+        [Parameter] public InstallerDto InstallerModel { get; set; }
+        [Parameter] public string ManifestVersion { get; set; } = "v1.10.0";
+        [Parameter] public VersionDto VersionModel { get; set; }
 
         bool isSilentVisible = false;
         bool isLocationVisible = false;

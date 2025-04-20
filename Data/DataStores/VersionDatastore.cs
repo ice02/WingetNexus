@@ -22,14 +22,15 @@ namespace WingetNexus.Data.DataStores
             _versionMapper = versionMapper;
         }
 
-        public async Task<VersionDto> CreateVersionAsync(VersionDto version)
+        public async Task<VersionDto> CreateVersionAsync(VersionDto version, string packageIdentifier)
         {
             try
             {
-                var application = await _context.Applications.FindAsync(version.Application.Id);
+                var application = await _context.Applications.FirstOrDefaultAsync(p=>p.PackageIdentifier == packageIdentifier);
                 if (application == null)
                 {
-                    throw new KeyNotFoundException($"Application with id {version.Application.Id} not found.");
+                    _logger.LogDebug($"Package not found for identifier {packageIdentifier}");
+                    throw new KeyNotFoundException($"Application with identifier {packageIdentifier} not found.");
                 }
 
                 // Check if the version already exists
@@ -38,7 +39,7 @@ namespace WingetNexus.Data.DataStores
 
                 if (existingVersion != null)
                 {
-                    _logger.LogWarning("Version {VersionCode} already exists for application {ApplicationId}.", version.VersionNumber, application.Id);
+                    _logger.LogWarning($"Version {version.VersionNumber} already exists for application {packageIdentifier}.");
                     return _versionMapper.ToLightDto(existingVersion);
                 }
 
@@ -71,7 +72,7 @@ namespace WingetNexus.Data.DataStores
 
                 _context.Versions.Add(dbVersion);
                 await _context.SaveChangesAsync();
-                _logger.LogDebug("Version {VersionCode} created successfully for application {ApplicationId}.", version.VersionNumber, application.Id);
+                _logger.LogDebug("Version {VersionCode} created successfully for application {ApplicationId}.", version.VersionNumber, application.PackageIdentifier);
 
                 return _versionMapper.ToFullDto(dbVersion);
             }

@@ -1,4 +1,6 @@
-﻿using MudBlazor.Services;
+﻿using Blazored.LocalStorage;
+using MudBlazor.Services;
+using WingetNexus.Client.Extensions;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -9,6 +11,8 @@ services.AddAuthorizationCore();
 services.TryAddSingleton<AuthenticationStateProvider, HostAuthenticationStateProvider>();
 services.TryAddSingleton(sp => (HostAuthenticationStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
 services.AddTransient<AuthorizedHandler>();
+
+services.AddApplicationServices();
 
 builder.RootComponents.Add<App>("#app");
 
@@ -27,6 +31,10 @@ services.AddHttpClient(AuthDefaults.AuthorizedClientName, client =>
 services.AddTransient(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("default"));
 services.AddTransient<IAntiforgeryHttpClientFactory, AntiforgeryHttpClientFactory>();
 
+services.AddBlazoredLocalStorage();
+
 services.AddMudServices();
+
+builder.Services.AddSingleton<IPackageService, PackageService>();
 
 await builder.Build().RunAsync();

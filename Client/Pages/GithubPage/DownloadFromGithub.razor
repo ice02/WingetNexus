@@ -1,0 +1,106 @@
+@using WingetNexus.Shared.Models.Github
+@using MudBlazor
+
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+
+@inject IGithubService GithubApiService
+
+@if (ApplicationInfo != null)
+{
+    <MudTextField @bind-Value="ApplicationInfo.Publisher" Label="Publisher" Disabled="true" />
+    <MudTextField @bind-Value="ApplicationInfo.Name" Label="Application Name" Disabled="true" />
+    <MudTextField @bind-Value="ApplicationInfo.Version" Label="Version" Disabled="true" />
+    <MudTextField @bind-Value="ApplicationInfo.FilePath" Label="File Path" Disabled="true" />
+
+    @if (yamlFilesList != null && yamlFilesList.Any())
+    {
+        <MudList T="DirectoryContent">
+            @foreach (var item in yamlFilesList)
+            {
+                <MudListItem>
+                    @item.Name
+                    <MudProgressLinear Value="@item.DownloadProgress" BufferValue="100" />
+                    <MudText>@item.DownloadStatus</MudText>
+                </MudListItem>
+            }
+        </MudList>
+    }
+}
+
+@code {
+    [Parameter]
+    public ApplicationInfo? ApplicationInfo { get; set; }
+
+    [Parameter]
+    public EventCallback<ApplicationInfo?> ApplicationInfoChanged { get; set; }
+
+    private List<DirectoryContent> yamlFilesList = new List<DirectoryContent>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ApplicationInfo != null && !string.IsNullOrEmpty(ApplicationInfo.FilePath))
+        {
+            yamlFilesList = (await GithubApiService.GetDirectoryContent(ApplicationInfo.FilePath)).ToList();
+            await DownloadFilesToTempStorage();
+        }
+    }
+
+    private async Task DownloadFilesToTempStorage()
+    {
+        if (yamlFilesList == null || !yamlFilesList.Any())
+        {
+            return;
+        }
+
+        if (ApplicationInfo != null)
+        {
+            ApplicationInfo.YamlFilesList = new List<string>();
+        }
+        foreach (var item in yamlFilesList)
+        {
+            item.DownloadStatus = "Downloading to temp storage...";
+            StateHasChanged();
+
+            var fileContent = item.DownloadUrl != null ? await DownloadFileDirectlyAsync(item.DownloadUrl) : null;
+            if (fileContent != null)
+            {
+                await StoreFileInCacheStorage(item.Name, fileContent);
+                item.DownloadProgress = 100;
+                item.DownloadStatus = "Downloaded to temp storage";
+
+                if (ApplicationInfo != null && ApplicationInfo.YamlFilesList != null)
+                {
+                    ApplicationInfo.YamlFilesList.Add(item.Name);
+                }
+            }
+            else
+            {
+                item.DownloadStatus = "Failed to download";
+            }
+
+            StateHasChanged();
+        }
+
+        await ApplicationInfoChanged.InvokeAsync(ApplicationInfo);
+    }
+
+    private async Task<string> DownloadFileDirectlyAsync(string filePath)
+    {
+        using (var httpClient = new HttpClient())
+        {
+            try
+            {
+                return await httpClient.GetStringAsync(filePath);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+
+    private async Task StoreFileInCacheStorage(string fileName, string fileContent)
+    {
+        await LocalStorage.SetItemAsync(fileName, fileContent);
+    }
+}

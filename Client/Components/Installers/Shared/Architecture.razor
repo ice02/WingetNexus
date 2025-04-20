@@ -1,0 +1,28 @@
+﻿
+<MudSelect T="string" Label="Architecture" @bind-Value="SelectedArchitecture">
+    <MudSelectItem Value="@("X86")">x86</MudSelectItem>
+    <MudSelectItem Value="@("X64")">x64</MudSelectItem>
+    <MudSelectItem Value="@("Arm")">arm</MudSelectItem>
+    <MudSelectItem Value="@("Arm64")">arm64</MudSelectItem>
+    <MudSelectItem Value="@("Neutral")">neutral</MudSelectItem>
+</MudSelect>
+
+@code {
+    private string selectedArchitecture = "X64";
+
+    [Parameter]
+    public string SelectedArchitecture
+    {
+        get => selectedArchitecture;
+        set
+        {
+            if (selectedArchitecture != value)
+            {
+                selectedArchitecture = value;
+                SelectedArchitectureChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string> SelectedArchitectureChanged { get; set; }
+}

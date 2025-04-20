@@ -28,7 +28,7 @@ namespace WingetNexus.Server.Controllers.v2
             _wingetAppDatastore = wingetAppDatastore;
         }
 
-        [HttpPost("{packageIdentifier}")]
+        [HttpPost("application/{packageIdentifier}")]
         [ValidateAntiForgeryToken]
         [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
         public async Task<ActionResult<VersionDto>> PostVersion([FromBody] VersionDto versionForm, string packageIdentifier)
@@ -38,13 +38,6 @@ namespace WingetNexus.Server.Controllers.v2
             VersionDto version = null;
 
             _logger.LogDebug($"Creating new version");
-
-            var pck = await _wingetAppDatastore.GetApplicationByPackageIdentifierAsync(packageIdentifier);
-            if (pck == null)
-            {
-                _logger.LogDebug($"Package not found for identifier {packageIdentifier}");
-                return StatusCode(204, "Application not found");
-            }
 
             //ValidateCreateForm(packageForm, ref hasValidationErrors, ref validationErrors);
 
@@ -56,23 +49,13 @@ namespace WingetNexus.Server.Controllers.v2
 
             try
             {
-                //versionForm.Application = pck;
-
-                //if (versionForm.Installers != null && versionForm.Installers.Count > 0)
-                //{
-                //    if (version.Installers == null)
-                //    {
-                //        version.Installers = new List<Installer>();
-                //    }
-
-                //    foreach (var item in versionForm.Installers)
-                //    {
-                //        version.Installers.Add(_dataStore.CreateInstaller(item));
-                //    }
-                //}
-
-                version = await _versionDatastore.CreateVersionAsync(versionForm);
+                version = await _versionDatastore.CreateVersionAsync(versionForm, packageIdentifier);
                 _logger.LogDebug("Version created");
+            }
+            catch (KeyNotFoundException e)
+            {
+                _logger.LogWarning($"Error creating new version: {e}");
+                return StatusCode(404, "Application not found");
             }
             catch (Exception e)
             {

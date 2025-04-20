@@ -7,7 +7,7 @@
 @attribute [Authorize]
 @* @attribute [RenderModeInteractiveAuto] *@
 
-@inject IAntiforgeryHttpClientFactory httpClientFactory
+@inject IPackageService PackageService
 
 @inject MudBlazor.ISnackbar snackBar
 @inject IDialogService DialogService
@@ -17,7 +17,7 @@
 <MudPaper Elevation="25" Class="ma-4">
     <MudToolBar>
         <MudText Typo="Typo.h6">Winget Applications</MudText>
-        <MudChip>@packages.Count() application(s)</MudChip>
+        <MudChip T="string">@packages.Count() application(s)</MudChip>
         @* <MudChip>@packages.Select(p=>p.Versions).Count() versions(s)</MudChip> *@
         <MudSpacer />
         <MudButton @onclick="OpenDialogQuickAdd" Variant="Variant.Filled" Color="Color.Primary">Add new application</MudButton>
@@ -68,19 +68,6 @@ else
 
 @code {
 
-    public class GridDataRequestDto
-    {
-        public string? SearchTerm { get; set; } = null;
-        public int Page { get; set; } = 0; // The page number for the data we're requesting
-        public int PageSize { get; set; } = 10; // The number of items per page
-    }
-
-    public class PackageListDto
-    {
-        public IEnumerable<ApplicationDto> Items { get; set; }
-        public int ItemTotalCount { get; set; } = 0; // The total count of items before paging
-    }
-
     private MudDataGrid<ApplicationDto>? _dataGrid;
 
     private string searchString = "";
@@ -88,20 +75,11 @@ else
     private bool isLoading = false;
     private bool noPackage = false;
 
-    HttpClient client = null;
-
     private GridDataRequestDto _requestDto = new();
 
     protected override async Task OnInitializedAsync()
     {
         await Task.Delay(1);
-
-        if (client == null)
-        {
-            client = await httpClientFactory.CreateClientAsync();
-        }
-
-        //await GetPackages();
     }
 
     private async Task<GridData<ApplicationDto>> LoadGridData(GridState<ApplicationDto> state)
@@ -109,17 +87,17 @@ else
         _requestDto.Page = state.Page;
         _requestDto.PageSize = state.PageSize;
 
-        PackageListDto apiResponse = await GetPackagesFiltered(_requestDto);
+        PackageListDto apiResponse = await PackageService.GetPackagesFilteredAsync(_requestDto);
         if (apiResponse == null || apiResponse.Items == null)
         {
             return new GridData<ApplicationDto>();
         }
 
         GridData<ApplicationDto> data = new()
-            {
-                Items = apiResponse.Items,
-                TotalItems = apiResponse.ItemTotalCount
-            };
+        {
+            Items = apiResponse.Items,
+            TotalItems = apiResponse.ItemTotalCount
+        };
 
         StateHasChanged();
 
@@ -134,70 +112,6 @@ else
         }
     }
 
-    private async Task<PackageListDto> GetPackagesFiltered(GridDataRequestDto request)
-    {
-        isLoading = true;
-        StateHasChanged();
-        var result = new PackageListDto();
-
-        try
-        {
-            using (client = await httpClientFactory.CreateClientAsync())
-            {
-                HttpResponseMessage? res = null;
-
-                if (string.IsNullOrEmpty(request.SearchTerm))
-                {
-                    res = await client.GetAsync($"api/v2/packages?page={request.Page}&pageSize={request.PageSize}");
-                }
-                else
-                {
-                    res = await client.GetAsync($"api/v2/packages?page={request.Page}&pageSize={request.PageSize}&filter={request.SearchTerm}");
-                }
-                
-                if (!res.IsSuccessStatusCode)
-                {
-                    snackBar.Add(res.ReasonPhrase, Severity.Error);
-                }
-                else
-                {
-
-                    result.Items = await res?.Content?.ReadFromJsonAsync<IEnumerable<ApplicationDto>>();
-                    result.ItemTotalCount = int.Parse(res.Headers.GetValues("X-Total-Count").FirstOrDefault());
-                    if (result.Items == null || result.Items.Count() == 0)
-                    {
-                        noPackage = true;
-                    }
-                    else
-                    {
-                        noPackage = false;
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-            snackBar.Add(ex.Message, Severity.Error);
-        }
-        finally
-        {
-            isLoading = false;
-        }
-
-        return result;
-    }
-
-    private void OpenNew()
-    {
-        NavigationManager.NavigateTo("/packageEdit");
-    }
-
-    private void OpenDialogUpdate(ApplicationDto package)
-    {
-        NavigationManager.NavigateTo("/packageEdit/" + package.PackageIdentifier);
-    }
-
     private async Task OpenDialogQuickAdd()
     {
         var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
@@ -210,22 +124,6 @@ else
             var data = result.Data as ApplicationDto;
             //redirect to the edit page using data.PackageIdentifier parameter
             NavigationManager.NavigateTo("/packageEdit/" + data.PackageIdentifier);
-            // using (client = await httpClientFactory.CreateClientAsync())
-            // {
-            //     var res = await client.PostAsJsonAsync($"api/v2/packages", data);
-
-            //     if (!res.IsSuccessStatusCode)
-            //     {
-            //         var error = await res.Content.ReadAsStringAsync();
-            //         snackBar.Add(error, Severity.Error);
-            //     }
-            //     else
-            //     {
-            //         snackBar.Add("Application added successfully.", Severity.Success);
-            //         //await GetPackages();
-            //         await _dataGrid.ReloadServerData();
-            //     }
-            // }
         }
     }
 
@@ -237,24 +135,28 @@ else
             yesText: "Delete!", cancelText: "Cancel");
         if (confirm == true)
         {
-            using (client = await httpClientFactory.CreateClientAsync())
+            try
             {
-                var res = await client.DeleteAsync($"api/v1/packages/{id}");
-                if (!res.IsSuccessStatusCode)
-                {
-                    snackBar.Add(res.ReasonPhrase, Severity.Error);
-                }
-                else
-                {
-                    snackBar.Add("Application fully deleted", Severity.Success);
+                await PackageService.DeletePackageAsync(id);
+                snackBar.Add("Application fully deleted", Severity.Success);
 
-                    //await GetPackages();
-
-                    await _dataGrid.ReloadServerData();
-                }
+                await _dataGrid.ReloadServerData();
             }
-
+            catch (Exception ex)
+            {
+                snackBar.Add(ex.Message, Severity.Error);
+            }
         }
+    }
+
+    private void OpenNew()
+    {
+        NavigationManager.NavigateTo("/packageEdit");
+    }
+
+    private void OpenDialogUpdate(ApplicationDto package)
+    {
+        NavigationManager.NavigateTo("/packageEdit/" + package.PackageIdentifier);
     }
 
 }

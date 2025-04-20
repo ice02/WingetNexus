@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WingetNexus.Shared.Models.Entities;
+using WingetNexus.Data.Models;
 
 namespace WingetNexus.Data
 {
@@ -129,5 +130,6 @@ namespace WingetNexus.Data
         public DbSet<Application> Applications { get; set; }
         public DbSet<Locale> Locales { get; set; }
         public DbSet<Publisher> Publishers { get; set; }
+        public DbSet<TutorialDismissedState> TutorialDismissedStates { get; set; }
     }
 }

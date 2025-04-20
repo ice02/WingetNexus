@@ -68,19 +68,12 @@ namespace WingetNexus.Controllers.v2
             return Ok(packageCnt);
         }
 
-        [HttpGet("checkUnicity")]
-        public async Task<ActionResult<bool>> CheckUnicity([FromQuery]string identifier)
-        {
-            var packageCnt = await _dataStore.GetAppCountByIdentyifierAsync(identifier);
-            return Ok(packageCnt == 0);
-        }
-
         /// <summary>
         /// Get full package details by identifier
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpGet("{packageIdentifier}")]
+        [HttpGet("{id}")]
         //[Authorize]
         //[Authorize(Policy = "get:package")]
         public async Task<ActionResult<ApplicationDto>> GetPackage(string packageIdentifier)
@@ -105,20 +98,17 @@ namespace WingetNexus.Controllers.v2
 
             if (hasValidationErrors)
             {
-                return StatusCode(400, validationErrors);
+                return StatusCode(500, validationErrors);
             }
 
             var identifier = $"{packageForm.Publisher.Replace(" ", "")}.{packageForm.Name.Replace(" ", "")}";
-            if (await _dataStore.GetAppCountByIdentyifierAsync(identifier) > 0)
+            if (_dataStore.GetApplicationByPackageIdentifierAsync(identifier) != null)
             {
-                return StatusCode(400, "Package identifier must be unique");
+                return StatusCode(500, "Package identifier must be unique");
             }
-
-            packageForm.PackageIdentifier = identifier;
-
             
 
-            //var package = new ApplicationDto(identifier, packageForm.Name, packageForm.Publisher);
+            var package = new ApplicationDto(identifier, packageForm.Name, packageForm.Publisher);
 
             //package.Versions = new List<Version>();
 
@@ -154,7 +144,7 @@ namespace WingetNexus.Controllers.v2
             //    package.Versions.Add(version);
             //}
 
-            var newApp = await _dataStore.CreateApplicationAsync(packageForm);
+            var newApp = await _dataStore.CreateApplicationAsync(package);
 
             return Ok(newApp);
         }

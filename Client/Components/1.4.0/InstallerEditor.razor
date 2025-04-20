@@ -1,0 +1,78 @@
+﻿@using WingetNexus.Shared.Models.Yaml
+@using WingetNexus.Shared.Models.Yaml.v1._4.Installer
+
+<MudPaper >
+    @if (installer != null)
+    {
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <WingetNexus.Client.Components.Installers.Shared.InstallerKind 
+                @bind-SelectedInstallerType="InstallerType"
+                @bind-SelectedNestedInstallerType="NestedInstallerType"/>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <WingetNexus.Client.Components.Installers.Shared.BinaryBrowser 
+                @bind-InstallerPath="installer.InstallerUrl" 
+                @bind-InstallerSha256="installer.InstallerSha256"/>
+            </MudItem>
+        </MudGrid>
+    }
+    else
+    {
+        <MudText Typo="Typo.subtitle2">Installer initializing ...</MudText>
+    }
+
+
+</MudPaper>
+
+@code {
+    [Parameter] public IInstallerClass? InstallerModel { get; set; }
+
+    InstallerClass? installerModel;
+
+    Installer? installer = null;
+
+    string installerType = "Msi";
+    string nestedInstallerType = "Exe";
+    // string installerUrl = "https://example.com/installer.exe";
+    // string installerSha256 = string.Empty;
+
+    public string InstallerType
+    {
+        get => installerModel?.InstallerType.ToString() ?? string.Empty;
+        set
+        {
+            if (installerModel != null)
+            {
+                installerModel.InstallerType = Enum.Parse<InstallerType>(value);
+            }
+        }
+    }
+
+    public string NestedInstallerType
+    {
+        get => installerModel?.NestedInstallerType.ToString() ?? string.Empty;
+        set
+        {
+            if (installerModel != null)
+            {
+                installerModel.NestedInstallerType = Enum.Parse<NestedInstallerType>(value);
+            }
+        }
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        installer = new Installer();
+
+        installerModel = InstallerModel as InstallerClass;
+        if (installerModel == null)
+        {
+            installerModel = new InstallerClass();
+        }
+
+        
+
+        await base.OnInitializedAsync();
+    }
+}

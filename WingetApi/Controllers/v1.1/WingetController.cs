@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.FeatureManagement;
 using Newtonsoft.Json.Linq;
 using WingetNexus.Data;
-using WingetNexus.Shared.Models.Db;
 using WingetNexus.Shared.Models.Winget;
 using WingetNexus.WingetApi.Helpers;
 
@@ -171,12 +170,12 @@ namespace WingetNexus.WingetApi.Controllers.v1
                 CertificateValidationHelper.ValidateAuthentication(Request, _logger);
             }
 
-            var package = _context.Packages
+            var package = _context.Applications
                             .Include(p => p.Versions)
                             .Include("Versions.Installers")
                             .Include("Versions.Installers.NestedInstallerFiles")
                             .Include("Versions.Installers.Switches")
-                            .FirstOrDefault(p => p.Identifier == identifier);
+                            .FirstOrDefault(p => p.PackageIdentifier == identifier);
             
             if (package == null)
             {
@@ -189,10 +188,10 @@ namespace WingetNexus.WingetApi.Controllers.v1
             {
                 var data = new ManifestVersion()
                 {
-                    PackageVersion = version.VersionCode,
+                    PackageVersion = version.VersionNumber,
                     DefaultLocale = new ManifestDefaultLocal()
                     {
-                        Moniker = version.Identifier,
+                        Moniker = version.Application.PackageIdentifier,
                         PackageLocale = version.PackageLocale,
                         Publisher = package.Publisher,
                         PackageName = package.Name,

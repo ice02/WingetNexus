@@ -1,0 +1,85 @@
+﻿@using WingetNexus.Shared.Models.Github
+
+@inject IGithubService GithubApiService
+
+<MudPaper Width="300px" Elevation="0">
+    <MudTreeView ServerData="@LoadChildNodes" Items="@DirectoryContents">
+        <ItemTemplate>
+            <MudTreeViewItem Value="@context.Value" Text="@context.Text"
+                             Items="@(context.Children as IReadOnlyCollection<TreeItemData<DirectoryContent?>>)"
+                             ItemsChanged="@(new Action<IReadOnlyCollection<TreeItemData<DirectoryContent>>>(items => OnItemsLoaded(context, items)))"
+                             @bind-Expanded="@context.Expanded"
+                             CanExpand="@context.Expandable"
+                             Icon="@context.Icon"
+                             LoadingIconColor="Color.Info" />
+        </ItemTemplate>
+    </MudTreeView>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public string Path { get; set; } = string.Empty;
+
+    private List<TreeItemData<DirectoryContent>> DirectoryContents { get; set; } = new();
+    private DirectoryContent? SelectedItem { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        @* DirectoryContents = (await GithubApiClient.GetDirectoryContentAsync(Path)).Select(p=> new TreeItemData<DirectoryContent>()
+        {
+                Children = p.Type == Octokit.ContentType.Dir ? new List<TreeItemData<DirectoryContent>>() : null,
+                Value = p,
+                Text = p.Name,
+                Icon = GetIcon(p),
+                Expandable = true,
+                Expanded = false
+        }).ToList(); *@
+        DirectoryContents = (await GithubApiService.GetDirectoryContent(Path)).Select(p => new TreeItemData<DirectoryContent>()
+        {
+            Children = p.Type == Octokit.ContentType.Dir ? new List<TreeItemData<DirectoryContent>>() : null,
+            Value = p,
+            Text = p.Name,
+            Icon = GetIcon(p),
+            Expandable = p.Type == Octokit.ContentType.Dir,
+            Expanded = false
+        }).ToList();
+    }
+
+    private async Task<IReadOnlyCollection<TreeItemData<DirectoryContent>>> LoadChildNodes(DirectoryContent item)
+    {
+        if (item.Type == "dir")
+        {
+            @* return (await GithubApiClient.GetDirectoryContentAsync(item.Path)).Select(p => new TreeItemData<DirectoryContent>()
+                {
+                    Children = p.Type == Octokit.ContentType.Dir ? new List<TreeItemData<DirectoryContent>>() : null,
+                    Value = p,
+                    Text = p.Name,
+                    Icon = GetIcon(p),
+                    Expandable = p.Type == Octokit.ContentType.Dir,
+                    Expanded = false
+                }).ToList(); *@
+            return (await GithubApiService.GetDirectoryContent(item.Path)).Select(p => new TreeItemData<DirectoryContent>() 
+            {
+                Children = p.Type == Octokit.ContentType.Dir ? new List<TreeItemData<DirectoryContent>>() : null,
+                Value = p,
+                Text = p.Name,
+                Icon = GetIcon(p),
+                Expandable = p.Type == Octokit.ContentType.Dir,
+                Expanded = false
+            }).ToList();
+        }
+        return new List<TreeItemData<DirectoryContent>>();
+    }
+
+    private string GetIcon(DirectoryContent item)
+    {
+        return item.Type == "dir" ? Icons.Material.Filled.Folder : Icons.Material.Filled.InsertDriveFile;
+    }
+
+    private void OnItemsLoaded(TreeItemData<DirectoryContent> treeItemData, IReadOnlyCollection<TreeItemData<DirectoryContent>> children)
+    {
+        // here we store the server-loaded children in the treeItemData so that they are available in the InitialTreeItems
+        // if you don't do this you loose already loaded children on next render update
+        treeItemData.Children = children?.ToList();
+    }
+}

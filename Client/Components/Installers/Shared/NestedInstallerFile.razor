@@ -1,0 +1,47 @@
+﻿<MudGrid>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="RelativeFilePath"
+                      Label="Relative File Path" HelperText="The relative path to the nested installer file" Required="true" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudTextField T="string" @bind-Value="PortableCommandAlias"
+                      Label="Portable Command Alias" HelperText="The command alias to be used for calling the package" />
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string? relativeFilePath;
+    private string? portableCommandAlias;
+
+    [Parameter]
+    public string? RelativeFilePath
+    {
+        get => relativeFilePath;
+        set
+        {
+            if (relativeFilePath != value)
+            {
+                relativeFilePath = value;
+                RelativeFilePathChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string?> RelativeFilePathChanged { get; set; }
+
+    [Parameter]
+    public string? PortableCommandAlias
+    {
+        get => portableCommandAlias;
+        set
+        {
+            if (portableCommandAlias != value)
+            {
+                portableCommandAlias = value;
+                PortableCommandAliasChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<string?> PortableCommandAliasChanged { get; set; }
+}

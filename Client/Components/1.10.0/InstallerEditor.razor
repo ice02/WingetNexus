@@ -1,0 +1,20 @@
+﻿@using WingetNexus.Shared.Models.Yaml
+@using WingetNexus.Shared.Models.Yaml.v1._10.Installer
+
+Version 1.10
+
+@code {
+    [Parameter] public IInstallerClass? InstallerModel { get; set; }
+
+    InstallerClass? installerModel;
+
+    protected async override Task OnInitializedAsync()
+    {
+        installerModel = InstallerModel as InstallerClass;
+        if (installerModel == null)
+        {
+            installerModel = new InstallerClass();
+        }
+        await base.OnInitializedAsync();
+    }
+}

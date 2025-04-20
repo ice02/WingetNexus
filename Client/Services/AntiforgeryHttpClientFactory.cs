@@ -1,4 +1,6 @@
-﻿namespace WingetNexus.Client.Services;
+﻿using System.Net.Http;
+
+namespace WingetNexus.Client.Services;
 
 public class AntiforgeryHttpClientFactory : IAntiforgeryHttpClientFactory
 {
