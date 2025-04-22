@@ -22,6 +22,7 @@ namespace WingetNexus.Shared.Services
             {
                 cfg.AddProfile<VersionProfile>();
                 cfg.AddProfile<ApplicationProfile>();
+                cfg.AddProfile<PublisherProfile>();
             }, typeof(ServiceCollectionExtension).Assembly);
 
 

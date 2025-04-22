@@ -35,6 +35,6 @@ services.AddBlazoredLocalStorage();
 
 services.AddMudServices();
 
-builder.Services.AddSingleton<IPackageService, PackageService>();
+
 
 await builder.Build().RunAsync();

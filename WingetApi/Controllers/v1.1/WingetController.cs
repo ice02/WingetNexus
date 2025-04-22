@@ -192,8 +192,8 @@ namespace WingetNexus.WingetApi.Controllers.v1
                     DefaultLocale = new ManifestDefaultLocal()
                     {
                         Moniker = version.Application.PackageIdentifier,
-                        PackageLocale = version.PackageLocale,
-                        Publisher = package.Publisher,
+                        PackageLocale = version.VersionNumber,
+                        Publisher = package.Publisher.Name,
                         PackageName = package.Name,
                         ShortDescription = version.ShortDescription
                     },
@@ -209,12 +209,12 @@ namespace WingetNexus.WingetApi.Controllers.v1
             }
 
             //var output0 = package.GenerateOutput();
-            var output = new { Data = new { PackageIdentifier = package.Identifier, Versions = versionData } };
+            var output = new { Data = new { PackageIdentifier = package.PackageIdentifier, Versions = versionData } };
 
             return Ok(output);
         }
 
-        private ManifestInstaller[] GetInstallerData(PackageVersion version)
+        private ManifestInstaller[] GetInstallerData(Version version)
         {
             if (version.Installers == null)
             {
@@ -232,7 +232,7 @@ namespace WingetNexus.WingetApi.Controllers.v1
                     {
                         var installerPath = installer.InstallerPath;
                         if (installer.IsLocalPackage)
-                            installerPath = $"{_configuration["InstallerPath"]}/api/v1/Files/{installer.InstallerPath}";
+                            installerPath = $"{_configuration["InstallerPath"]}/api/v2/Files/{installer.InstallerPath}";
 
                         var data = new ManifestInstaller()
                         {
@@ -256,7 +256,7 @@ namespace WingetNexus.WingetApi.Controllers.v1
                 {
                     var installerPath = installer.InstallerPath;
                     if (installer.IsLocalPackage)
-                        installerPath = $"{_configuration["InstallerPath"]}/api/v1/Files/{installer.InstallerPath}";
+                        installerPath = $"{_configuration["InstallerPath"]}/api/v2/Files/{installer.InstallerPath}";
 
                     var data = new ManifestInstaller()
                     {
