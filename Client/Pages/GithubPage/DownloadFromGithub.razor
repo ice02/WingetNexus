@@ -3,7 +3,7 @@
 @using YamlDotNet.Serialization.NamingConventions
 
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
-
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IGithubService GithubApiService
 
 @if (ApplicationInfo != null)
@@ -57,6 +57,12 @@
         {
             ApplicationInfo.YamlFilesList = new List<ContentFileDto>();
         }
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userEmail = user.Identity?.IsAuthenticated == true ? user.FindFirst(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value : "Unknown";
+
+
         foreach (var item in yamlFilesList)
         {
             item.DownloadStatus = "Downloading to temp storage...";
@@ -88,7 +94,11 @@
                             FileVersion = manifestVersion,
                             FileExtension = "yaml",
                             CreatedDate = DateTime.UtcNow,
-                            ModifiedDate = DateTime.UtcNow
+                            ModifiedDate = DateTime.UtcNow,
+                            UserCreated = userEmail,
+                            UserLastModified = userEmail,
+                            RepositoryType = "Database",
+                            Checksum = CalculateChecksum(fileContent)
                         };
                     ApplicationInfo.YamlFilesList.Add(newContentFile);
                 }
@@ -104,6 +114,17 @@
         }
 
         await ApplicationInfoChanged.InvokeAsync(ApplicationInfo);
+    }
+
+
+    private string CalculateChecksum(string fileContent)
+    {
+        using (var sha256 = System.Security.Cryptography.SHA256.Create())
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(fileContent);
+            var hash = sha256.ComputeHash(bytes);
+            return Convert.ToBase64String(hash);
+        }
     }
 
     private async Task<string> DownloadFileDirectlyAsync(string filePath)
