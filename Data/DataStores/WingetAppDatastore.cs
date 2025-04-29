@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using WingetNexus.Shared.Models.Dtos;
 using WingetNexus.Shared.Models.Entities;
+using Version = WingetNexus.Shared.Models.Entities.Version;
 
 namespace WingetNexus.Data.DataStores
 {
@@ -12,11 +13,18 @@ namespace WingetNexus.Data.DataStores
         private readonly ILogger<WingetAppDatastore> _logger;
         private readonly IMapper _mapper;
 
-        public WingetAppDatastore(WingetNexusContext context, ILogger<WingetAppDatastore> logger, IMapper mapper)
+        private readonly IVersionDatastore _versionDatastore;
+        private readonly IPublisherDataStore _publisherDataStore;
+
+        public WingetAppDatastore(WingetNexusContext context, ILogger<WingetAppDatastore> logger, IMapper mapper, 
+            IVersionDatastore versionDatastore, 
+            IPublisherDataStore publisherDataStore)
         {
             _context = context;
             _logger = logger;
             _mapper = mapper;
+            _versionDatastore = versionDatastore;
+            _publisherDataStore = publisherDataStore;
         }
 
         public async Task<ApplicationDto> CreateApplicationAsync(ApplicationDto application)
@@ -27,23 +35,44 @@ namespace WingetNexus.Data.DataStores
 
             try
             {
+                //TODO: replace by calling publisher datastore
                 var publisher = await _context.Publishers.FirstOrDefaultAsync(
-                    p =>  p.Name.ToUpper() == application.Publisher.ToUpper());
+                    p => p.Name.ToUpper() == application.Publisher.Name.ToUpper());
 
                 if (publisher == null)
                 {
                     publisher = new Publisher
                     {
-                        Name = application.Publisher
+                        Name = application.Publisher.Name
                     };
                     var resultPublisher = _context.Publishers.Add(publisher);
                 }
-                var newApp = new Application
-                {
-                    Name = application.Name,
-                    Publisher = publisher,
-                    PackageIdentifier = application.PackageIdentifier,
-                };
+
+                var newApp = _mapper.Map<Application>(application);
+                newApp.Publisher = publisher;
+
+                //var newVersions = new List<Version>();
+                //if (application.Versions != null)
+                //{
+                //    foreach (var version in application.Versions)
+                //    {
+                //        var newVersion = _mapper.Map<Version>(version);
+                       
+                //        newVersion.DefaultLocaleContent = _mapper.Map<ContentFiles>(version.DefaultLocaleContent);
+                //        newVersion.InstallersContent = _mapper.Map<ContentFiles>(version.InstallersContent);
+
+
+                //        //newVersion.DefaultLocaleKey = AddContentToDB(_mapper.Map<ContentFiles>(version.DefaultLocaleContent));
+                //        //foreach (var locale in version.LocalesContent)
+                //        //{
+                //        //    var newLocale = _mapper.Map<ContentFiles>(locale);
+                //        //    newVersion.LocalsDatasKey.Add(AddContentToDB(newLocale));
+                //        //}
+                //        //newVersion.InstallersDatasKey = AddContentToDB(_mapper.Map<ContentFiles>(version.InstallersContent));
+
+                //        newVersions.Add(newVersion);
+                //    }
+                //}
 
                 var resultApp = _context.Applications.Add(newApp);
                 await _context.SaveChangesAsync();
@@ -57,6 +86,22 @@ namespace WingetNexus.Data.DataStores
                 _logger.LogCritical(exc, "Failed to create application {0} / {1}", application.Publisher, application.Name);
                 throw;
             }
+        }
+
+        private int AddContentToDB(ContentFiles content)
+        {
+            try
+            {
+                var result = _context.ContentFiles.Add(content);
+                _context.SaveChanges();
+                return result.Entity.Id;
+            }
+            catch (Exception exc)
+            {
+                _logger.LogError(exc, "Failed to add content to DB");
+                return -1;
+            }
+            
         }
 
         public async Task<ApplicationDto> GetApplicationByIdAsync(int id)
@@ -143,7 +188,11 @@ namespace WingetNexus.Data.DataStores
                         .Take(filterDto.PageSize.Value);
                 }
 
-                return _mapper.Map<List<ApplicationDto>>(await query.ToListAsync());
+                var result = await query.ToListAsync();
+
+
+
+                return _mapper.Map<List<ApplicationDto>>(result);
             }
             catch (Exception exc)
             {

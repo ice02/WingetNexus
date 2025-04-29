@@ -28,4 +28,9 @@
     <ProjectReference Include="..\Shared\WingetNexus.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Db\" />
+    <Folder Include="Models\temp\" />
+  </ItemGroup>
+
 </Project>

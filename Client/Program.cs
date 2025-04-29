@@ -31,10 +31,14 @@ services.AddHttpClient(AuthDefaults.AuthorizedClientName, client =>
 services.AddTransient(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("default"));
 services.AddTransient<IAntiforgeryHttpClientFactory, AntiforgeryHttpClientFactory>();
 
+// services.AddTransient<HttpClient>(sp =>
+// {
+//     var antiforgeryHttpClientFactory = sp.GetRequiredService<IAntiforgeryHttpClientFactory>();
+//     return antiforgeryHttpClientFactory.CreateClientAsync().GetAwaiter().GetResult();
+// });
+
 services.AddBlazoredLocalStorage();
 
 services.AddMudServices();
-
-
 
 await builder.Build().RunAsync();

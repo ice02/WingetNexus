@@ -13,7 +13,7 @@ namespace WingetNexus.Shared.Models.Dtos
         [Required]
         public string Name { get; set; }
         [Required]
-        public string Publisher { get; set; }
+        public PublisherDto Publisher { get; set; }
         [Required]
         public string PackageIdentifier { get; set; }
 
@@ -29,7 +29,7 @@ namespace WingetNexus.Shared.Models.Dtos
         public string UserCreated { get; set; } = string.Empty;
         public string UserLastModified { get; set; } = string.Empty;
 
-        public ApplicationDto(string name, string publisher, string identifier, string architecture, string version, string installerType)
+        public ApplicationDto(string name, PublisherDto publisher, string identifier, string architecture, string version, string installerType)
         {
             Name = name;
             Publisher = publisher;
@@ -56,7 +56,10 @@ namespace WingetNexus.Shared.Models.Dtos
 
         }
 
-        public ApplicationDto(string identifier, string name, string publisher)
+        public ApplicationDto(
+            string identifier, 
+            string name, 
+            PublisherDto publisher)
         {
             PackageIdentifier = identifier;
             Name = name;

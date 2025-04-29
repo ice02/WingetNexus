@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using System.Text.Json.Serialization;
 using WingetNexus.Data;
 using WingetNexus.Data.DataStores;
 using WingetNexus.Data.Extensions;
@@ -85,8 +86,21 @@ services.AddAuthentication(options =>
 });
 
 services
-    .AddControllersWithViews(options =>options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()))
-    .AddJsonOptions(options =>options.JsonSerializerOptions.PropertyNamingPolicy = null);
+    .AddControllersWithViews(options => options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()))
+    .AddNewtonsoftJson(option=>
+    {
+        option.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+        option.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
+        option.SerializerSettings.Formatting = Newtonsoft.Json.Formatting.Indented;
+        option.SerializerSettings.ContractResolver = new Newtonsoft.Json.Serialization.DefaultContractResolver();
+    }
+    //.AddJsonOptions(options =>
+    //{
+    //    options.JsonSerializerOptions.PropertyNamingPolicy = null;
+    //    //options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+    //    //options.JsonSerializerOptions.MaxDepth = 1;
+    //}
+    );
 
 services.AddTransient<IApplicationDatastore, ApplicationDatastore>();
 services.AddTransient<IWingetAppDatastore, WingetAppDatastore>();

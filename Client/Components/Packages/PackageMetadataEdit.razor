@@ -8,7 +8,7 @@
 
     <div class="d-flex">
         <MudTextField T="string" Label="Publisher" Required="true" RequiredError="Publisher is required!"
-                      @bind-Value="Package.Publisher" For="@(() => Package.Publisher)" />
+                      @bind-Value="Package.Publisher.Name" For="@(() => Package.Publisher.Name)" />
         <MudTextField T="string" Label="Name" Required="true" RequiredError="Package name is required!"
                       @bind-Value="Package.Name" For="@(() => Package.Name)" />
     </div>
@@ -52,12 +52,12 @@
 
         try
         {
-            if (!string.IsNullOrEmpty(Package.Publisher) && !string.IsNullOrEmpty(Package.Name))
+            if (!string.IsNullOrEmpty(Package.Publisher.Name) && !string.IsNullOrEmpty(Package.Name))
             {
                 var res = await httpClient.PutAsJsonAsync($"api/v1/packages/{Package.PackageIdentifier}/infos",
                     new NewPackageDto
                         {
-                            Publisher = Package.Publisher,
+                            Publisher = Package.Publisher.Name,
                             Name = Package.Name
                         });
 
@@ -90,12 +90,12 @@
 
         try
         {
-            if (!string.IsNullOrEmpty(Package.Publisher) && !string.IsNullOrEmpty(Package.Name))
+            if (!string.IsNullOrEmpty(Package.Publisher.Name) && !string.IsNullOrEmpty(Package.Name))
             {
                 var res = await httpClient.PostAsJsonAsync($"api/v1/packages",
                     new NewPackageDto
                         {
-                            Publisher = Package.Publisher,
+                            Publisher = Package.Publisher.Name,
                             Name = Package.Name
                         });
 

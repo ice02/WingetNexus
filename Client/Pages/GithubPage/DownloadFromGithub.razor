@@ -1,5 +1,6 @@
 @using WingetNexus.Shared.Models.Github
-@using MudBlazor
+@using YamlDotNet.Serialization
+@using YamlDotNet.Serialization.NamingConventions
 
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
@@ -41,11 +42,11 @@
         if (ApplicationInfo != null && !string.IsNullOrEmpty(ApplicationInfo.FilePath))
         {
             yamlFilesList = (await GithubApiService.GetDirectoryContent(ApplicationInfo.FilePath)).ToList();
-            await DownloadFilesToTempStorage();
+            await DownloadFilesToStorage();
         }
     }
 
-    private async Task DownloadFilesToTempStorage()
+    private async Task DownloadFilesToStorage()
     {
         if (yamlFilesList == null || !yamlFilesList.Any())
         {
@@ -54,7 +55,7 @@
 
         if (ApplicationInfo != null)
         {
-            ApplicationInfo.YamlFilesList = new List<string>();
+            ApplicationInfo.YamlFilesList = new List<ContentFileDto>();
         }
         foreach (var item in yamlFilesList)
         {
@@ -64,14 +65,35 @@
             var fileContent = item.DownloadUrl != null ? await DownloadFileDirectlyAsync(item.DownloadUrl) : null;
             if (fileContent != null)
             {
-                await StoreFileInCacheStorage(item.Name, fileContent);
+                //await StoreFileInCacheStorage(item.Name, fileContent);
                 item.DownloadProgress = 100;
-                item.DownloadStatus = "Downloaded to temp storage";
+                item.DownloadStatus = "Downloaded ...";
+                StateHasChanged();
+
+                var deserializer = new DeserializerBuilder()
+                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                    .Build();
+                dynamic yamlObject = deserializer.Deserialize<dynamic>(fileContent);
+                var manifestVersion = yamlObject["ManifestVersion"];
+                var manifestType = yamlObject["ManifestType"];
 
                 if (ApplicationInfo != null && ApplicationInfo.YamlFilesList != null)
                 {
-                    ApplicationInfo.YamlFilesList.Add(item.Name);
+                    var newContentFile = new ContentFileDto
+                        {
+                            FilePath = item.DownloadUrl,
+                            FileName = item.Name,
+                            FileContent = fileContent,
+                            FileType = manifestType,
+                            FileVersion = manifestVersion,
+                            FileExtension = "yaml",
+                            CreatedDate = DateTime.UtcNow,
+                            ModifiedDate = DateTime.UtcNow
+                        };
+                    ApplicationInfo.YamlFilesList.Add(newContentFile);
                 }
+
+                item.DownloadStatus = "Content files created";
             }
             else
             {
@@ -99,8 +121,8 @@
         }
     }
 
-    private async Task StoreFileInCacheStorage(string fileName, string fileContent)
-    {
-        await LocalStorage.SetItemAsync(fileName, fileContent);
-    }
+    // private async Task StoreFileInCacheStorage(string fileName, string fileContent)
+    // {
+    //     await LocalStorage.SetItemAsync(fileName, fileContent);
+    // }
 }

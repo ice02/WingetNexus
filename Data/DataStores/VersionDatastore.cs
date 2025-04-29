@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -13,13 +14,15 @@ namespace WingetNexus.Data.DataStores
     {
         private readonly WingetNexusContext _context;
         private readonly ILogger<VersionDatastore> _logger;
-        private readonly VersionMapper _versionMapper;
+        private readonly IMapper _mapper;
+        //private readonly VersionMapper _versionMapper;
 
-        public VersionDatastore(WingetNexusContext context, ILogger<VersionDatastore> logger, VersionMapper versionMapper)
+        public VersionDatastore(WingetNexusContext context, ILogger<VersionDatastore> logger, IMapper mapper)
         {
             _context = context;
             _logger = logger;
-            _versionMapper = versionMapper;
+            _mapper = mapper;
+            //_versionMapper = versionMapper;
         }
 
         public async Task<VersionDto> CreateVersionAsync(VersionDto version, string packageIdentifier)
@@ -40,7 +43,7 @@ namespace WingetNexus.Data.DataStores
                 if (existingVersion != null)
                 {
                     _logger.LogWarning($"Version {version.VersionNumber} already exists for application {packageIdentifier}.");
-                    return _versionMapper.ToLightDto(existingVersion);
+                    return _mapper.Map<VersionDto>(existingVersion);
                 }
 
                 //var dbVersion = new Version
@@ -56,7 +59,7 @@ namespace WingetNexus.Data.DataStores
                 //    Locales = new List<Locale>(),
 
                 //};
-                var dbVersion = _versionMapper.ToEntity(version);
+                var dbVersion = _mapper.Map<Version>(version);
 
                 //foreach (var installer in version.Installers)
                 //{
@@ -74,7 +77,7 @@ namespace WingetNexus.Data.DataStores
                 await _context.SaveChangesAsync();
                 _logger.LogDebug("Version {VersionCode} created successfully for application {ApplicationId}.", version.VersionNumber, application.PackageIdentifier);
 
-                return _versionMapper.ToFullDto(dbVersion);
+                return _mapper.Map<VersionDto>(dbVersion);
             }
             catch (Exception exc)
             {
@@ -105,7 +108,7 @@ namespace WingetNexus.Data.DataStores
 
             //return VersionMapper.VersionToVersionDto(version);
 
-            return _versionMapper.ToFullDto(version);
+            return _mapper.Map<VersionDto>(version);
         }
 
         public async Task<IEnumerable<VersionDto>> GetAllVersionsAsync(string? versionFilter = null, int pageNumber = 1, int pageSize = 10)
@@ -117,7 +120,7 @@ namespace WingetNexus.Data.DataStores
                 query = query.Where(v => v.VersionNumber.Contains(versionFilter));
             }
 
-            return await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).Select(p=>_versionMapper.ToLightDto(p)).ToListAsync();
+            return await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).Select(p=>_mapper.Map<VersionDto>(p)).ToListAsync();
         }
 
         public async Task<VersionDto> UpdateVersionAsync(VersionDto version)
@@ -128,12 +131,12 @@ namespace WingetNexus.Data.DataStores
                 throw new KeyNotFoundException($"Version with id {version.Id} not found.");
             }
 
-            dbVersion = _versionMapper.ToEntity(version);
+            dbVersion = _mapper.Map<Version>(version);
 
             _context.Versions.Update(dbVersion);
             await _context.SaveChangesAsync();
 
-            return _versionMapper.ToLightDto(dbVersion);
+            return _mapper.Map<VersionDto>(dbVersion);
         }
 
         public async Task<bool> DeleteVersionAsync(int id)

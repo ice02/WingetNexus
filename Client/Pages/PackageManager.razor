@@ -12,8 +12,15 @@
 @inject MudBlazor.ISnackbar snackBar
 @inject IDialogService DialogService
 @inject NavigationManager NavigationManager
+@inject IAntiforgeryHttpClientFactory HttpClientFactory
 
-
+@if (!isPageLoaded)
+{
+    <MudProgressCircular Class="m-auto" Color="Color.Primary" Size="Size.Large" />
+}
+else
+{
+    
 <MudPaper Elevation="25" Class="ma-4">
     <MudToolBar>
         <MudText Typo="Typo.h6">Winget Applications</MudText>
@@ -40,15 +47,15 @@ else
                 <MudTextField @bind-Value="_requestDto.SearchTerm" Placeholder="Search for applications..." Adornment="Adornment.Start" Immediate="true"
                               AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
                 <MudIconButton Size="@Size.Small" Color="Color.Primary" Icon="@Icons.Material.Outlined.Search" OnClick="@Search" />
-            
+
         </ToolBarContent>
         <Columns>
-            <PropertyColumn Property="x => x.Publisher" />
-            <PropertyColumn Property="x => x.Name" />
-            <PropertyColumn Property="x => x.PackageIdentifier" />
+            <PropertyColumn Title="Publisher" Property="x => x.Publisher.Name" />
+            <PropertyColumn Title="Application Name" Property="x => x.Name" />
+            <PropertyColumn Title="Identifier" Property="x => x.PackageIdentifier" />
             <PropertyColumn Property="x => x.Versions" Title="Latest version">
                 <CellTemplate>
-                    @context.Item.LatestVersion?.VersionNumber ?? "No available version"
+                    @(context.Item.LatestVersion?.VersionNumber ?? "No available version")
                 </CellTemplate>
             </PropertyColumn>
             <TemplateColumn CellClass="d-flex justify-end">
@@ -62,11 +69,12 @@ else
             <MudDataGridPager T="ApplicationDto" />
         </PagerContent>
     </MudDataGrid>
-    
+
 @* } *@
-    
+}
 
 @code {
+    bool isPageLoaded = false;
 
     private MudDataGrid<ApplicationDto>? _dataGrid;
 
@@ -76,18 +84,33 @@ else
     private bool noPackage = false;
 
     private GridDataRequestDto _requestDto = new();
+    private DataListDto<ApplicationDto> dataListDto = new();
 
     protected override async Task OnInitializedAsync()
     {
-        await Task.Delay(1);
+        await PackageService.InitializeHttpClientAsync(await HttpClientFactory.CreateClientAsync());
+        await base.OnInitializedAsync();
+        isPageLoaded = true;
+        StateHasChanged();
+        //await Task.Delay(1);
     }
 
     private async Task<GridData<ApplicationDto>> LoadGridData(GridState<ApplicationDto> state)
     {
-        _requestDto.Page = state.Page;
-        _requestDto.PageSize = state.PageSize;
+        dataListDto.Page = state.Page;
+        dataListDto.PageSize = state.PageSize;
+        //dataListDto.SortBy = state.SortDefinitions.FirstOrDefault().SortBy;
+        //dataListDto.IsAscending = state.SortedColumn?.SortDirection;
+        dataListDto.Filter = searchString;
 
-        PackageListDto apiResponse = await PackageService.GetPackagesFilteredAsync(_requestDto);
+        _requestDto = new GridDataRequestDto
+            {
+                Page = state.Page,
+                PageSize = state.PageSize
+            };
+
+
+        DataListDto<ApplicationDto> apiResponse = await PackageService.GetPackagesFilteredAsync(_requestDto);
         if (apiResponse == null || apiResponse.Items == null)
         {
             return new GridData<ApplicationDto>();
@@ -96,7 +119,7 @@ else
         GridData<ApplicationDto> data = new()
         {
             Items = apiResponse.Items,
-            TotalItems = apiResponse.ItemTotalCount
+            TotalItems = apiResponse.ItemTotalCount,
         };
 
         StateHasChanged();

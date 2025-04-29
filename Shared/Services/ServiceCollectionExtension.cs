@@ -13,9 +13,9 @@ namespace WingetNexus.Shared.Services
     {
         public static IServiceCollection AddDataMappers(this IServiceCollection services)
         {
-            services.AddSingleton<VersionMapper>();
-            services.AddSingleton<ApplicationMapper>();
-            services.AddSingleton<InstallerMapper>();
+            //services.AddSingleton<VersionMapper>();
+            //services.AddSingleton<ApplicationMapper>();
+            //services.AddSingleton<InstallerMapper>();
 
             //add auto mappers
             services.AddAutoMapper(cfg =>
@@ -23,6 +23,7 @@ namespace WingetNexus.Shared.Services
                 cfg.AddProfile<VersionProfile>();
                 cfg.AddProfile<ApplicationProfile>();
                 cfg.AddProfile<PublisherProfile>();
+                cfg.AddProfile<ContentFileProfile>();
             }, typeof(ServiceCollectionExtension).Assembly);
 
 

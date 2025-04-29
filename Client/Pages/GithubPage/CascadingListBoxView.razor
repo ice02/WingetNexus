@@ -144,7 +144,10 @@
                          Name = thirdSelected.Name, 
                          FilePath = fourthSelected.Path,
                          Publisher = secondSelected?.Name, 
-                         Version = fourthSelected?.Name 
+                         Version = fourthSelected?.Name ,
+                         VersionUrl = fourthSelected.Path,
+                         ApplicationUrl = thirdSelected.Path,
+                         PublisherUrl = secondSelected.Path
                      });
             }
         }

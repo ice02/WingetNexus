@@ -18,9 +18,9 @@ namespace WingetNexus.Shared.Mappers
             {
                 Id = application.Id,
                 Name = application.Name,
-                Publisher = application.Publisher?.Name,
-                PackageIdentifier = application.PackageIdentifier,
-                GitHubUrl = application.GitHubUrl
+                //Publisher = application.Publisher,
+                //PackageIdentifier = application.PackageIdentifier,
+                //GitHubUrl = application.GitHubUrl
                 //Versions = application.Versions?.Select(v => new VersionDto
                 //{
                 //    Id = v.Id,

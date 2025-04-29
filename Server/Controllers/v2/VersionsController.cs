@@ -163,7 +163,7 @@ namespace WingetNexus.Server.Controllers.v2
                     hasValidationErrors = true;
                     validationErrors += "Version code is missing";
                 }
-                if (string.IsNullOrEmpty(versionForm.DefaultLocaleKey))
+                if (string.IsNullOrEmpty(versionForm.DefaultLocaleValue))
                 {
                     hasValidationErrors = true;
                     validationErrors += "Package default locale is missing";

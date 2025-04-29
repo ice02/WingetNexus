@@ -14,7 +14,7 @@
                 <MudTextField T="string" Label="Name" Required="true" RequiredError="Package name is required!" 
                               @bind-Value="modelP.Name" For="@(() => modelP.Name)" />
                 <MudTextField T="string" Label="Publisher" Required="true" RequiredError="Publisher is required!"
-                              @bind-Value="modelP.Publisher" For="@(() => modelP.Publisher)" />
+                              @bind-Value="modelP.Publisher.Name" For="@(() => modelP.Publisher.Name)" />
             </MudPaper>
 
             <MudGrid>

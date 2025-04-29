@@ -145,6 +145,10 @@ namespace WingetNexus.Data.Extensions
                                 options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
                             }
                             options.CommandTimeout(30);
+#if DEBUG
+                            optionsBuilder.EnableSensitiveDataLogging();
+                            optionsBuilder.EnableDetailedErrors();
+#endif
                         })
                     .AddInterceptors(serviceProvider.GetRequiredService<SecondLevelCacheInterceptor>());
             });

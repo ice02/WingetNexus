@@ -101,50 +101,17 @@ namespace WingetNexus.Controllers.v2
                 return StatusCode(500, validationErrors);
             }
 
-            var identifier = $"{packageForm.Publisher.Replace(" ", "")}.{packageForm.Name.Replace(" ", "")}";
-            if (_dataStore.GetApplicationByPackageIdentifierAsync(identifier) != null)
+            if (string.IsNullOrEmpty(packageForm.PackageIdentifier))
             {
-                return StatusCode(500, "Package identifier must be unique");
+                packageForm.PackageIdentifier = $"{packageForm.Publisher.Name.Replace(" ", "")}.{packageForm.Name.Replace(" ", "")}";
             }
-            
 
-            var package = new ApplicationDto(identifier, packageForm.Name, packageForm.Publisher);
+            if (await _dataStore.GetApplicationByPackageIdentifierAsync(packageForm.PackageIdentifier) != null)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, "Package identifier must be unique");
+            }
 
-            //package.Versions = new List<Version>();
-
-            //foreach (var versionForm in packageForm.Versions)
-            //{
-            //    var local = _context.Locales.FirstOrDefault(l => l.PackageLocale == versionForm.PackageLocale);
-            //    if (local == null)
-            //    {
-            //        local = new Locale(versionForm.PackageLocale);
-            //        _context.Locales.Add(local);
-            //        try
-            //        {
-            //            await _context.SaveChangesAsync();
-            //        }
-            //        catch (Exception e)
-            //        {
-            //            _logger.LogError($"Error committing to the database: {e}");
-            //            return StatusCode(500, "Database error");
-            //        }
-            //    }
-
-            //    var version = new PackageVersion(versionForm.VersionCode, versionForm.PackageLocale, identifier, versionForm.ShortDescription);
-            //    version.Installers = new List<Installer>();
-
-            //    foreach (var installerForm in versionForm.Installers)
-            //    {
-            //        var installer = _dataStore.CreateInstaller(installerForm);
-            //        version.Installers.Add(installer);
-            //    }
-
-            //    //var version = _dataStore.CreatePackageVersion(versionForm);
-
-            //    package.Versions.Add(version);
-            //}
-
-            var newApp = await _dataStore.CreateApplicationAsync(package);
+            var newApp = await _dataStore.CreateApplicationAsync(packageForm);
 
             return Ok(newApp);
         }

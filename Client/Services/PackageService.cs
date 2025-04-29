@@ -5,34 +5,26 @@ using WingetNexus.Shared.Models.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Octokit;
 
 namespace WingetNexus.Client.Services
 {
     public class PackageService : IPackageService
     {
-        private HttpClient? _httpClient;
+        private HttpClient _httpClient;
+        private readonly IAntiforgeryHttpClientFactory _httpClientFactory;
+
         private readonly string _apiversion = "v2";
 
-        public PackageService(IAntiforgeryHttpClientFactory antiforgeryHttpClientFactory)
+        public PackageService(IAntiforgeryHttpClientFactory httpClientFactory)
         {
-            try
-            {
-                antiforgeryHttpClientFactory.CreateClientAsync().ContinueWith(task =>
-                {
-                    if (task.IsFaulted || task.Result == null)
-                    {
-                        throw new InvalidOperationException("Failed to create HttpClient.", task.Exception);
-                    }
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+            //InitializeHttpClientAsync(httpClientFactory).GetAwaiter().GetResult();
+        }
 
-                    _httpClient = task.Result;
-                    _httpClient.DefaultRequestHeaders.Accept.Clear();
-                    _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-                });
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("An error occurred while initializing the PackageService.", ex);
-            }
+        public async Task InitializeHttpClientAsync(HttpClient httpClient)
+        {
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
         public async Task<ApplicationDto> GetPackageAsync(string id)
@@ -50,14 +42,14 @@ namespace WingetNexus.Client.Services
             return result;
         }
 
-        public async Task<PackageListDto> GetPackagesFilteredAsync(GridDataRequestDto request)
+        public async Task<DataListDto<ApplicationDto>> GetPackagesFilteredAsync(GridDataRequestDto request)
         {
             if (_httpClient == null)
             {
                 throw new InvalidOperationException("HttpClient is not initialized. Call InitializeHttpClientAsync first.");
             }
 
-            var result = new PackageListDto();
+            var result = new DataListDto<ApplicationDto>();
 
             try
             {
@@ -192,26 +184,46 @@ namespace WingetNexus.Client.Services
             throw new Exception("Error creating publisher.");
         }
 
-        public async Task<ApplicationDto> CreateApplicationAsync(ApplicationDto application, string versionNumber)
+        public async Task<ApplicationDto> CreateApplicationAsync(ApplicationDto application)
         {
             if (_httpClient == null)
             {
                 throw new InvalidOperationException("HttpClient is not initialized. Call InitializeHttpClientAsync first.");
             }
 
-            // Check if application with the same ID and version exists
-            var response = await _httpClient.GetAsync($"api/{_apiversion}/applications/checkExists?packageIdentifier={application.PackageIdentifier}&version={versionNumber}");
-            if (response.IsSuccessStatusCode)
+            if (application == null)
             {
-                var existingApplication = await response.Content.ReadFromJsonAsync<ApplicationDto>();
-                if (existingApplication != null)
-                {
-                    return existingApplication;
-                }
+                throw new ArgumentNullException(nameof(application), "Application cannot be null.");
             }
 
+            if (string.IsNullOrEmpty(application.PackageIdentifier))
+            {
+                throw new ArgumentException("PackageIdentifier cannot be null or empty.", nameof(application.PackageIdentifier));
+            }
+
+            //if (application.Versions != null && application.Versions.Count == 0)
+            //{
+            //    throw new ArgumentException("Version cannot be null or empty.", nameof(application.Versions));
+            //}
+
+            //foreach (var item in application.Versions)
+            //{
+            //    // Check if application with the same ID and version exists
+            //    var response = await _httpClient.GetAsync($"api/{_apiversion}/applications/checkExists?packageIdentifier={application.PackageIdentifier}&version={versionNumber}");
+            //    if (response.IsSuccessStatusCode)
+            //    {
+            //        var existingApplication = await response.Content.ReadFromJsonAsync<ApplicationDto>();
+            //        if (existingApplication != null)
+            //        {
+            //            return existingApplication;
+            //        }
+            //    }
+            //}
+
+            // for now override existing version
+
             // Create the application if it does not exist
-            var createResponse = await _httpClient.PostAsJsonAsync($"api/{_apiversion}/applications", application);
+            var createResponse = await _httpClient.PostAsJsonAsync($"api/{_apiversion}/packages", application);
             if (createResponse.IsSuccessStatusCode)
             {
                 var createdApplication = await createResponse.Content.ReadFromJsonAsync<ApplicationDto>();
@@ -221,8 +233,53 @@ namespace WingetNexus.Client.Services
                 }
                 return createdApplication;
             }
+            else
+            {
+                var problemDetailsJson = await createResponse.Content.ReadAsStringAsync();
+            }
 
+            // TODO: create a new exception type to hadle httpclient errors
             throw new Exception("Error creating application.");
+        }
+
+        public async Task<IEnumerable<PublisherDto>> GetPublishersAsync(string searchTerm, int page, int pageSize)
+        {
+            if (_httpClient == null)
+            {
+                throw new InvalidOperationException("HttpClient is not initialized. Call InitializeHttpClientAsync first.");
+            }
+
+            var query = $"api/{_apiversion}/publishers?page={page}&pageSize={pageSize}";
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                query += $"&filter={searchTerm}";
+            }
+
+            var response = await _httpClient.GetAsync(query);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<IEnumerable<PublisherDto>>();
+                if (result == null)
+                {
+                    throw new NullReferenceException("The publisher data could not be retrieved.");
+                }
+                return result;
+            }
+
+            throw new Exception("Error fetching publishers.");
+        }
+
+        public async Task DeletePublisherAsync(int id)
+        {
+            if (_httpClient == null)
+            {
+                throw new InvalidOperationException("HttpClient is not initialized. Call InitializeHttpClientAsync first.");
+            }
+            var res = await _httpClient.DeleteAsync($"api/{_apiversion}/publishers/{id}");
+            if (!res.IsSuccessStatusCode)
+            {
+                throw new Exception(res.ReasonPhrase);
+            }
         }
     }
 }

@@ -52,11 +52,11 @@ public static class EntitiesHelpers
         }
     }
 
-    public static List<ILocaleClass> GetLocalesFromJson(string localsDatasJson, string manifestVersion)
+    public static List<ILocaleClass>? GetLocalesFromJson(List<string>? localsDatasJson, string manifestVersion)
     {
         try
         {
-            if (string.IsNullOrEmpty(localsDatasJson) || string.IsNullOrEmpty(manifestVersion))
+            if (localsDatasJson == null || string.IsNullOrEmpty(manifestVersion))
             {
                 return null;
             }
@@ -80,12 +80,28 @@ public static class EntitiesHelpers
                 throw new TypeLoadException($"Type {targetNamespace}.LocaleClass not found.");
             }
 
-            // Deserialize the JSON into a list of the dynamically loaded type
-            var genericListType = typeof(List<>).MakeGenericType(localClassType);
-            var deserializedList = JsonSerializer.Deserialize(localsDatasJson, genericListType);
+            var result = new List<ILocaleClass>();
+            foreach (var json in localsDatasJson)
+            {
+                if (string.IsNullOrEmpty(json))
+                {
+                    continue;
+                }
 
-            // Cast the deserialized list to a list of ILocalClass
-            return ((IEnumerable<object>)deserializedList).Cast<ILocaleClass>().ToList();
+                // Deserialize the JSON into a list of the dynamically loaded type
+                //var genericListType = typeof(List<>).MakeGenericType(localClassType);
+                var deserializedValue = JsonSerializer.Deserialize(json, localClassType);
+
+                if (deserializedValue == null)
+                {
+                    continue;
+                }
+                // Cast the deserialized list to a list of ILocalClass
+                
+                result.Add((ILocaleClass)deserializedValue);
+            }
+
+            return result;
         }
         catch (Exception ex)
         {
@@ -135,7 +151,7 @@ public static class EntitiesHelpers
         }
     }
 
-    public static string SerializeLocalesToJson(List<ILocaleClass> locales, string manifestVersion)
+    public static List<string> SerializeLocalesToJson(List<ILocaleClass> locales, string manifestVersion)
     {
         try
         {
@@ -164,11 +180,22 @@ public static class EntitiesHelpers
             }
 
             // Serialize the list of locales to JSON
-            var genericListType = typeof(List<>).MakeGenericType(localClassType);
-            var castedLocales = locales.Cast<object>().ToList();
-            var json = JsonSerializer.Serialize(castedLocales, genericListType);
+            //var genericListType = typeof(List<>).MakeGenericType(localClassType);
+            //var castedLocales = locales.Cast<object>().ToList();
+            var localsDatasJson = new List<string>();
+            foreach (var locale in locales)
+            {
+                if (locale == null)
+                {
+                    continue;
+                }
+                // Serialize each locale to JSON
+                var json = JsonSerializer.Serialize(locale, localClassType);
+                // Add the serialized JSON to the result list
+                localsDatasJson.Add(json);
+            }
 
-            return json;
+            return localsDatasJson;
         }
         catch (Exception ex)
         {

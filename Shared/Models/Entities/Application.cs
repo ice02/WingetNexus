@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace WingetNexus.Shared.Models.Entities
 {
@@ -22,9 +24,9 @@ namespace WingetNexus.Shared.Models.Entities
         public string? GitHubUrl { get; set; }
 
         public int PublisherId { get; set; }
-        public Publisher? Publisher { get; set; }
+        public virtual Publisher? Publisher { get; set; }
 
-        public ICollection<Version>? Versions { get; set; }
+        public virtual ICollection<Version>? Versions { get; set; }
 
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public DateTime ModifiedDate { get; set; } = DateTime.Now;

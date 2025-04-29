@@ -18,7 +18,7 @@
                                          RequiredError="Publisher is required!" CoerceValue=true
                                          ShowProgressIndicator="true"
                                          AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary"
-                                         For="@(() => modelP.Publisher)" ValueChanged="OnPublisherChanged"
+                                         For="@(() => modelP.Publisher.Name)" ValueChanged="OnPublisherChanged"
                                          SearchFunc="SearchPublishers" />
                         <MudTextField T="string" Label="Package Identifier" ReadOnly="true"
                                       @bind-Value="modelP.PackageIdentifier" For="@(() => modelP.PackageIdentifier)"
@@ -61,7 +61,7 @@
 
     private async Task OnPublisherChanged(string newValue)
     {
-        modelP.Publisher = newValue;
+        modelP.Publisher.Name = newValue;
         await RecalculatePackageIdentifier();
     }
 

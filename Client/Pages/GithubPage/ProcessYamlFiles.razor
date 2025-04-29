@@ -9,24 +9,14 @@
 @inject IYamlFilesService yamlFilesService
 @inject IPackageService packageService
 @inject ISnackbar Snackbar
-@inject HttpClient HttpClient
+@inject IAntiforgeryHttpClientFactory HttpClientFactory
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 @* Removed old commented-out sections for clarity *@
 
 <MudTabs Elevation="2" Rounded="true" PanelClass="pa-4">
-    @* Iterate over the new dictionary, keyed by ManifestType *@
-    @* @foreach (var kvp in _manifestDataByType.OrderBy(x => GetSortOrder(x.Key))) // Order tabs logically
-    {
-        <MudTabPanel Text="@kvp.Key">
-            @foreach (var manifestObject in kvp.Value)
-            {
-                <MudPaper Class="pa-2 mb-2" Outlined="true">
-                    <pre>@DisplayObjectValues(manifestObject, "")</pre>
-                </MudPaper>
-            }
-        </MudTabPanel>
-    } *@
-    
+
     <MudTabPanel Text="Version File">
         @if (_versionFile != null)
         {
@@ -52,8 +42,8 @@
         {
             <MudText>No default locale file found.</MudText>
         }
-        </MudTabPanel>
-    
+    </MudTabPanel>
+
     @if (_installerFiles != null && _installerFiles.Count > 0)
     {
         foreach (var installerFile in _installerFiles)
@@ -73,18 +63,18 @@
     @* create a tab with each _localesFiles content *@
     @if (_localesFiles != null && _localesFiles.Count > 0)
     {
-    foreach (var localeFile in _localesFiles)
-    {
-    <MudTabPanel Text="Locale File">
-        <MudPaper Class="pa-2 mb-2" Outlined="true">
-            <pre>@DisplayObjectValues(localeFile, "")</pre>
-        </MudPaper>
-    </MudTabPanel>
-    }
+        foreach (var localeFile in _localesFiles)
+        {
+            <MudTabPanel Text="Locale File">
+                <MudPaper Class="pa-2 mb-2" Outlined="true">
+                    <pre>@DisplayObjectValues(localeFile, "")</pre>
+                </MudPaper>
+            </MudTabPanel>
+        }
     }
     else
     {
-    <MudText>No locale files found.</MudText>
+        <MudText>No locale files found.</MudText>
     }
 
 </MudTabs>
@@ -98,11 +88,6 @@
     [Parameter]
     public EventCallback<ApplicationInfo?> ApplicationInfoChanged { get; set; }
 
-    // New dictionary to store deserialized objects by ManifestType
-    private Dictionary<string, List<object>> _manifestDataByType = new();
-    // Optional: Store mapping from object back to filename if needed for display
-    private Dictionary<object, string> _objectToFileMap = new();
-
     private string StepStatus = "Processing files...";
 
     private dynamic _versionFile;
@@ -110,11 +95,15 @@
     private List<dynamic> _installerFiles;
     private List<dynamic> _localesFiles;
 
-    private List<Dictionary<string, object>> _yamlData = new();
+    private string _versionContent = string.Empty;
+    private string _defaultLocaleContent = string.Empty;
+    private string _installerContent = string.Empty;
+    private List<string> _localesContent = new List<string>();
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        await packageService.InitializeHttpClientAsync(await HttpClientFactory.CreateClientAsync()); // Initialize the package service if needed
         await ProcessFilesAsync();
     }
 
@@ -125,66 +114,152 @@
             Snackbar.Add("No valid files to process.", Severity.Error);
             return;
         }
-        
+
         try
         {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var userEmail = user.Identity?.IsAuthenticated == true ? user.FindFirst(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value : "Unknown";
+
             // Check and create publisher
             var publisherName = _defaultLocaleFile.Publisher.ToString();
+            PublisherDto? newPublisher = null;
             if (!string.IsNullOrEmpty(publisherName))
             {
-                    var newPublisher = new PublisherDto
+                newPublisher = new PublisherDto
                         {
                             Name = publisherName,
                             CreatedDate = DateTime.UtcNow,
                             ModifiedDate = DateTime.UtcNow,
-                        // Add other properties if needed
+                            GitHubUrl = ApplicationInfo.PublisherUrl
+                    //GitHubUrl = _defaultLocaleFile.GitHubUrl.ToString(), //TODO: get from previous step
                         };
-                    newPublisher = await packageService.CreatePublisherAsync(newPublisher);
+                newPublisher = await packageService.CreatePublisherAsync(newPublisher);
+            }
+
+            if (newPublisher == null)
+            {
+                Snackbar.Add("Failed to create publisher.", Severity.Error);
+                return;
             }
 
             // Check and create application
             var applicationName = _versionFile.PackageIdentifier.ToString();
             if (!string.IsNullOrEmpty(applicationName))
             {
-                    foreach (var versionFile in _installerFiles) // Itérer sur tous les fichiers de version
+                // TODO: create all ContentFile entity values
+
+                var newApp = new ApplicationDto
                     {
-                        try
+                        PackageIdentifier = _versionFile.PackageIdentifier.ToString(),
+                        Name = _defaultLocaleFile.PackageName.ToString(),
+                        Publisher = newPublisher,
+                        CreatedDate = DateTime.UtcNow,
+                        ModifiedDate = DateTime.UtcNow,
+                        UserCreated = userEmail, // TODO: Replace with current user
+                        UserLastModified = userEmail, // TODO: Replace with current user
+                        GitHubUrl = ApplicationInfo.ApplicationUrl,
+                        Versions = new List<VersionDto>
                         {
-                            //var applicationName = versionFile.ContainsKey("PackageIdentifier") ? versionFile["PackageIdentifier"].ToString() : null;
-                            var versionNumber = versionFile.VersionNumber.ToString();
-
-                            if (!string.IsNullOrEmpty(applicationName) && !string.IsNullOrEmpty(versionNumber))
+                            new VersionDto
                             {
-                                var newApp = new ApplicationDto
-                                {
-                                    Name = applicationName,
-                                    Publisher = publisherName,
-                                    CreatedDate = DateTime.UtcNow,
-                                    ModifiedDate = DateTime.UtcNow,
-                                    UserCreated = "System", // Remplacez par l'utilisateur actuel si disponible
-                                    UserLastModified = "System", // Remplacez par l'utilisateur actuel si disponible
-                                    Versions = new List<VersionDto>
-                                    {
-                                        new VersionDto
-                                        {
-                                            VersionNumber = versionNumber,
-                                            CreatedDate = DateTime.UtcNow,
-                                            ModifiedDate = DateTime.UtcNow,
-                                            UserCreated = "System",
-                                            UserLastModified = "System"
-                                        }
-                                    }
-                                };
-
-                                newApp = await packageService.CreateApplicationAsync(newApp, versionNumber);
+                                VersionNumber = _versionFile.PackageVersion.ToString(),
+                                DefaultLocaleValue = _versionFile.DefaultLocale.ToString(),
+                                CreatedDate = DateTime.UtcNow,
+                                ModifiedDate = DateTime.UtcNow,
+                                UserCreated = userEmail, // TODO: Replace with current user
+                                UserLastModified = userEmail, // TODO: Replace with current user
+                                ShortDescription = _defaultLocaleFile.ShortDescription.ToString(),
+                                ApplicationIdentifier = _versionFile.PackageIdentifier.ToString(),
+                                VersionDatasKey = -1,
+                                InstallersDatasKey = -1,
+                                DefaultLocaleKey = -1,
+                                LocalsDatasKey = new List<int>(),
+                                ManifestVersion = _versionFile.ManifestVersion.ToString(),
+                                Channel = "Stable",
+                                GitHubUrl = ApplicationInfo.VersionUrl,
+                                VersionContent = ApplicationInfo.YamlFilesList.FirstOrDefault(x => x.FileType.Equals("version", StringComparison.InvariantCultureIgnoreCase)),
+                                DefaultLocaleContent = ApplicationInfo.YamlFilesList.FirstOrDefault(x => x.FileType.Equals("defaultLocale", StringComparison.InvariantCultureIgnoreCase)),
+                                InstallersContent = ApplicationInfo.YamlFilesList.FirstOrDefault(x => x.FileType.Equals("installer", StringComparison.InvariantCultureIgnoreCase)),
+                                LocalesContent = ApplicationInfo.YamlFilesList.Where(x => x.FileType.Equals("locale", StringComparison.InvariantCultureIgnoreCase)).ToList(),
                             }
                         }
-                        catch (Exception exc)
-                        {
-                            Snackbar.Add($"Error adding application for version: {exc.Message}", Severity.Error);
-                        }
-                    }
-                
+                    };
+
+                // // Add installers
+                // newApp.Versions[0].InstallersContent = new List<ContentFileDto>();
+                // foreach (var installerFile in ApplicationInfo.YamlFilesList.Where(p=>p.FileType.Equals("installer", StringComparison.InvariantCultureIgnoreCase)))
+                // {
+                    
+                //     newApp.Versions[0].InstallersContent.Add(installerFile);
+                // }
+
+                // // Add locales
+                // newApp.Versions[0].LocalesContent = new List<ContentFileDto>();
+                // foreach (var localeFile in _localesFiles)
+                // {
+                //     var localeContent = new ContentFileDto
+                //         {
+                //             FileContent = _localesContent.ToString(),
+                //             FileName = localeFile.FileName.ToString(),
+                //             FileType = "Locale",
+                //             FileVersion = localeFile.ManifestVersion.ToString(),
+                //             FileExtension = "yaml",
+                //             CreatedDate = DateTime.UtcNow,
+                //             ModifiedDate = DateTime.UtcNow,
+                //         // UserCreated = userEmail, // TODO: Replace with current user
+                //         // UserLastModified = userEmail // TODO: Replace with current user
+                //         };
+                //     newApp.Versions[0].LocalesContent.Add(localeContent);
+                // }
+
+                newApp = await packageService.CreateApplicationAsync(newApp);
+                if (newApp == null)
+                {
+                    Snackbar.Add("Failed to create application.", Severity.Error);
+                    return;
+                }
+
+                Snackbar.Add($"Application '{applicationName}' created successfully.", Severity.Success);
+                // foreach (var versionFile in _installerFiles) // Itï¿½rer sur tous les fichiers de version
+                // {
+                //     try
+                //     {
+                //         //var applicationName = versionFile.ContainsKey("PackageIdentifier") ? versionFile["PackageIdentifier"].ToString() : null;
+                //         var versionNumber = versionFile.VersionNumber.ToString();
+
+                //         if (!string.IsNullOrEmpty(applicationName) && !string.IsNullOrEmpty(versionNumber))
+                //         {
+                //             var newApp = new ApplicationDto
+                //             {
+                //                 Name = applicationName,
+                //                 Publisher = publisherName,
+                //                 CreatedDate = DateTime.UtcNow,
+                //                 ModifiedDate = DateTime.UtcNow,
+                //                 UserCreated = "System", // Remplacez par l'utilisateur actuel si disponible
+                //                 UserLastModified = "System", // Remplacez par l'utilisateur actuel si disponible
+                //                 Versions = new List<VersionDto>
+                //                 {
+                //                     new VersionDto
+                //                     {
+                //                         VersionNumber = versionNumber,
+                //                         CreatedDate = DateTime.UtcNow,
+                //                         ModifiedDate = DateTime.UtcNow,
+                //                         UserCreated = "System",
+                //                         UserLastModified = "System"
+                //                     }
+                //                 }
+                //             };
+
+                //             newApp = await packageService.CreateApplicationAsync(newApp, versionNumber);
+                //         }
+                //     }
+                //     catch (Exception exc)
+                //     {
+                //         Snackbar.Add($"Error adding application for version: {exc.Message}", Severity.Error);
+                //     }
+                // }
+
             }
         }
         catch (Exception exc)
@@ -197,51 +272,59 @@
     {
         if (ApplicationInfo?.YamlFilesList == null) return;
 
-        _yamlData.Clear();
+        //_yamlData.Clear();
         _versionFile = null; // Reset main file
 
         foreach (var file in ApplicationInfo.YamlFilesList)
         {
-            var fileContent = await GetFileContentFromCacheStorage(file);
+            var fileContent = file.FileContent; //await GetFileContentFromCacheStorage(file);
             var deserializer = new DeserializerBuilder()
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
                 .Build();
+            
             dynamic yamlObject = deserializer.Deserialize<dynamic>(fileContent);
+
             var manifestVersion = yamlObject["ManifestVersion"];
-            var fileType = yamlObject["ManifestType"];
+            var manifestType = yamlObject["ManifestType"];
 
             // Process each file
             try
             {
-                var deserializedObject = await yamlFilesService.DeserializeYamlContent(fileType, manifestVersion, fileContent);
-                _yamlData.Add(new Dictionary<string, object>
-                {
-                    { "FileName", file },
-                    { "DeserializedObject", deserializedObject }
-                });
+                var deserializedObject = await yamlFilesService.DeserializeYamlContent(manifestType, manifestVersion, fileContent);
+                // _yamlData.Add(new Dictionary<string, object>
+                // {
+                //     { "FileName", file },
+                //     { "DeserializedObject", deserializedObject }
+                // });
 
                 // Check if the file is of type "version" and set it as the main file
-                if (fileType == "version")
+                if (manifestType == "version")
                 {
+                    _versionContent = fileContent;
                     _versionFile = deserializedObject;
                 }
-                else if (fileType == "defaultLocale")
+                else if (manifestType == "defaultLocale")
                 {
+                    _defaultLocaleContent = fileContent;
                     _defaultLocaleFile = deserializedObject;
                 }
-                else if (fileType == "installer")
+                else if (manifestType == "installer")
                 {
                     if (_installerFiles == null) _installerFiles = new List<dynamic>();
                     _installerFiles.Add(deserializedObject);
+
+                    _installerContent = fileContent;
                 }
-                else if (fileType == "locale")
+                else if (manifestType == "locale")
                 {
                     if (_localesFiles == null) _localesFiles = new List<dynamic>();
                     _localesFiles.Add(deserializedObject);
+
+                    _localesContent.Add(fileContent);
                 }
                 else
                 {
-                    Snackbar.Add($"Unknown file type '{fileType}' in file '{file}'", Severity.Error);
+                    Snackbar.Add($"Unknown file type '{manifestType}' in file '{file}'", Severity.Error);
                     //_logger.LogWarning($"Unknown file type '{fileType}' in file '{file}'");
                 }
             }
@@ -252,33 +335,6 @@
         }
     }
 
-    // Helper class for initial deserialization to get ManifestType/Version
-    private class ManifestBaseInfo {
-        public string ManifestType { get; set; }
-        public string ManifestVersion { get; set; }
-    }
-
-    // Helper method to get a logical sort order for tabs
-    private int GetSortOrder(string manifestType)
-    {
-        return manifestType?.ToLowerInvariant() switch
-        {
-            "singleton" => 1,
-            "version" => 2,
-            "defaultlocale" => 3,
-            "installer" => 4,
-            "locale" => 5,
-            _ => 99 // Put unknown types last
-        };
-    }
-
-     // Helper method to retrieve the original filename (if needed)
-    private string GetFileNameForObject(object obj)
-    {
-        return _objectToFileMap.TryGetValue(obj, out var fileName) ? fileName : "Unknown";
-    }
-
-    // DisplayObjectValues remains the same as it works on any object
     private string DisplayObjectValues(object obj, string prefix)
     {
         if (obj == null) return "null";
@@ -294,16 +350,16 @@
 
         if (properties is null || properties.Length == 0)
         {
-             // If it's an enumerable but not string/dictionary, display items
+            // If it's an enumerable but not string/dictionary, display items
             if (obj is System.Collections.IEnumerable enumerable && !(obj is string || obj is System.Collections.IDictionary))
             {
-                 result.Add($"{prefix}[");
-                 foreach(var item in enumerable)
-                 {
-                     result.Add($"{prefix}  - {DisplayObjectValues(item, prefix + "    ")}");
-                 }
-                 result.Add($"{prefix}]");
-                 return string.Join("\n", result);
+                result.Add($"{prefix}[");
+                foreach (var item in enumerable)
+                {
+                    result.Add($"{prefix}  - {DisplayObjectValues(item, prefix + "    ")}");
+                }
+                result.Add($"{prefix}]");
+                return string.Join("\n", result);
             }
             return obj.ToString(); // Fallback for simple objects with no props
         }
@@ -333,7 +389,7 @@
                 bool first = true;
                 foreach (var item in enumerable)
                 {
-                     // Check if item is complex object or simple type
+                    // Check if item is complex object or simple type
                     if (item != null && (item.GetType().IsClass || item.GetType().IsValueType) && !item.GetType().IsPrimitive && !(item is string) && !(item is DateTime))
                     {
                         // Add indentation for complex objects within lists
@@ -345,32 +401,32 @@
                     }
                     first = false;
                 }
-                 if (first) // Handle empty enumerables
-                 {
-                     result.Add($"{prefix}  []");
-                 }
+                if (first) // Handle empty enumerables
+                {
+                    result.Add($"{prefix}  []");
+                }
             }
             else if (value is System.Collections.IDictionary dictionary)
             {
                 result.Add($"{propertyPrefix}");
-                 if (dictionary.Count == 0)
-                 {
-                     result.Add($"{prefix}  {{}}");
-                 }
-                 else
-                 {
+                if (dictionary.Count == 0)
+                {
+                    result.Add($"{prefix}  {{}}");
+                }
+                else
+                {
                     foreach (System.Collections.DictionaryEntry entry in dictionary)
                     {
                         result.Add($"{prefix}  {entry.Key}: {DisplayObjectValues(entry.Value, prefix + "    ")}"); // Recurse for dictionary values
                     }
-                 }
+                }
             }
-             // Check if it's a complex object (class or struct, not primitive/string/datetime)
+            // Check if it's a complex object (class or struct, not primitive/string/datetime)
             else if ((value.GetType().IsClass || (value.GetType().IsValueType && !value.GetType().IsEnum))
                      && !value.GetType().IsPrimitive && !(value is string) && !(value is DateTime))
             {
-                 // Recurse for nested objects, adding indentation
-                 result.Add($"{propertyPrefix}\n{DisplayObjectValues(value, prefix + "  ")}");
+                // Recurse for nested objects, adding indentation
+                result.Add($"{propertyPrefix}\n{DisplayObjectValues(value, prefix + "  ")}");
             }
             else // Simple property value
             {
@@ -381,23 +437,5 @@
         return string.Join("\n", result);
     }
 
-    private async Task<string> GetFileContentFromCacheStorage(string fileName)
-    {
-        try
-        {
-            var content = await LocalStorage.GetItemAsync<string>(fileName);
-            return content ?? string.Empty; // Return empty string if null
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error reading '{fileName}' from local storage: {ex.Message}", Severity.Error);
-            return string.Empty;
-        }
-    }
-
-    // This method might be redundant now if you don't need a raw dictionary transformation elsewhere.
-    // private async Task<Dictionary<string, object>> TransformYamlToDictionaryAsync(string yamlFilePath)
-    // {
-    //     // ... (implementation as before) ...
-    // }
+    
 }

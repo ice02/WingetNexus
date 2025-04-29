@@ -48,7 +48,7 @@
                 <MudTextField T="string" Label="Short Description" Required="true" RequiredError="Description is required!"
                 @bind-Value="Version.ShortDescription" For="@(() => Version.ShortDescription)" />
                 <MudSelect T="string" Label="Default locale" Required="true" RequiredError="Localization is required!"
-                @bind-Value="Version.DefaultLocaleKey" For="@(() => Version.DefaultLocaleKey)">
+                @bind-Value="Version.DefaultLocaleValue" For="@(() => Version.DefaultLocaleValue)">
                     <MudSelectItem Value="@("en-US")">en-US</MudSelectItem>
                     <MudSelectItem Value="@("fr-FR")">fr-FR</MudSelectItem>
                 </MudSelect>
@@ -110,7 +110,7 @@
             Version = new VersionDto();
             Version.VersionNumber = "1.0.0";
             Version.ShortDescription = "Initial version";
-            Version.DefaultLocaleKey = "en-US";
+            Version.DefaultLocaleValue = "en-US";
             Version.ManifestVersion = "1.10";
         }
         else
@@ -125,7 +125,7 @@
     {
         if (string.IsNullOrEmpty(this.Version.VersionNumber) 
         || string.IsNullOrEmpty(this.Version.ShortDescription) 
-        || string.IsNullOrEmpty(this.Version.DefaultLocaleKey)
+        || string.IsNullOrEmpty(this.Version.DefaultLocaleValue)
         || string.IsNullOrEmpty(this.Version.ManifestVersion)
         )
         {

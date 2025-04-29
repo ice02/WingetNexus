@@ -3,53 +3,89 @@
 @using MudBlazor
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject IPackageService _packageService
+@inject IDialogService DialogService
+@inject IAntiforgeryHttpClientFactory HttpClientFactory
 
-<MudPaper Class="pa-4">
-   <MudText Typo="Typo.h5">Publisher Management</MudText>
-   <MudDataGrid Items="_publishers" Filterable="true" Sortable="true" Editable="true" 
-       RowEditPreview="OnRowEditPreview" RowEditCommit="OnRowEditCommit" T="PublisherDto" Striped="true" Hover="true" Bordered="true" Elevation="25" FixedHeader="true" Class="mt-4">
-       <ToolBarContent>
-           <MudTextField @bind-Value="_searchTerm" Placeholder="Search for publishers..." Adornment="Adornment.Start" Immediate="true"
-                         AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-       </ToolBarContent>
-       <NoRecordsContent>
-           <MudText Class="mt-1">No publisher found</MudText>
-       </NoRecordsContent>
-       <Columns>
-           <PropertyColumn Property="x=>x.Name" Field="Name" Title="Publisher Name" Sortable="true" Filterable="true" />
-           <!-- <PropertyColumn Property="x=>x.ApplicationCount" Title="Applications" /> -->
-@*            <TemplateColumn CellClass="d-flex justify-end">
-               <CellTemplate>
-                   <MudIconButton Size="@Size.Small" Color="Color.Primary" Icon="@Icons.Material.Outlined.Edit" @onclick="(() => EditPublisher(context))" />
-                   <MudIconButton Size="@Size.Small" Color="Color.Secondary" Icon="@Icons.Material.Outlined.Delete" @onclick="(() => DeletePublisher(context))" />
-               </CellTemplate>
-           </TemplateColumn> *@
-       </Columns>
-   </MudDataGrid>
-   <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="AddPublisher">Add Publisher</MudButton>
-</MudPaper>
+
+@if (!isPageLoaded)
+{
+    <MudProgressCircular Class="m-auto" Color="Color.Primary" Size="Size.Large" />
+}
+else
+{
+    <MudPaper Elevation="25" Class="ma-4">
+        <MudToolBar>
+            <MudText Typo="Typo.h6">Publisher management</MudText>
+
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddPublisher">Add Publisher</MudButton>
+        </MudToolBar>
+    </MudPaper>
+
+    <MudDataGrid @ref="dataGrid" T="PublisherDto" ServerData="LoadServerData" Filterable="false" Dense="true"
+    Elevation="25" Class="ma-4" FixedHeader="true">
+        <ToolBarContent>
+            <MudTextField T="string" ValueChanged="@(s=>OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+            AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <NoRecordsContent>
+            <MudText Class="mt-1">No publisher found</MudText>
+        </NoRecordsContent>
+        <Columns>
+            <PropertyColumn Property="x => x.Name" Field="Name" Title="Publisher Name" Sortable="true" Filterable="true" />
+            <PropertyColumn Property="x => x.GitHubUrl" Field="Git hub url" Title="Github Url" />
+            <TemplateColumn T="PublisherDto" Title="Actions" CellClass="d-flex justify-end">
+                <CellTemplate>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="() => EditPublisher(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => ConfirmDeletePublisher(context)" />
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="PublisherDto" />
+        </PagerContent>
+    </MudDataGrid>
+}
 
 @code {
-   private List<PublisherDto> _publishers = new();
-   private PublisherDto _selectedPublisher = new();
-   private string _searchTerm;
+    private MudDataGrid<PublisherDto>? dataGrid;
+    private List<PublisherDto> _publishers = new();
+    private PublisherDto _selectedPublisher = new();
+    private string? _searchTerm = string.Empty;
+    private bool isPageLoaded = false;
 
-   protected override async Task OnInitializedAsync()
-   {
-       await LoadPublishers();
-   }
+    private Task OnSearch(string text)
+    {
+        _searchTerm = text;
+        return dataGrid.ReloadServerData();
+    }
 
-   private async Task LoadPublishers()
-   {
-       try
-       {
-           _publishers = await Http.GetFromJsonAsync<List<PublisherDto>>("api/v2/publishers");
-       }
-       catch (Exception ex)
-       {
-           Snackbar.Add($"Error loading publishers: {ex.Message}", Severity.Error);
-       }
-   }
+    protected override async Task OnInitializedAsync()
+    {
+        await _packageService.InitializeHttpClientAsync(await HttpClientFactory.CreateClientAsync());
+        await base.OnInitializedAsync();
+
+        isPageLoaded = true;
+
+        StateHasChanged();
+    }
+
+
+    private async Task<GridData<PublisherDto>> LoadServerData(GridState<PublisherDto> state)
+    {
+        try
+        {
+            var result = await _packageService.GetPublishersAsync(_searchTerm, state.Page + 1, state.PageSize);
+            var totalItems = result.Count(); // Assuming the total count is the length of the result
+            return new GridData<PublisherDto> { Items = result, TotalItems = totalItems };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading data: {ex.Message}", Severity.Error);
+            return new GridData<PublisherDto> { Items = new List<PublisherDto>(), TotalItems = 0 };
+        }
+    }
 
    private void AddPublisher()
    {
@@ -57,51 +93,24 @@
        // Logic to open a dialog for adding a new publisher
    }
 
-   private void EditPublisher(PublisherDto publisher)
+   private void EditPublisher(CellContext<PublisherDto> publisher)
    {
-       _selectedPublisher = publisher;
+       _selectedPublisher = publisher.Item;
        // Logic to open a dialog for editing the selected publisher
    }
 
-   private async Task DeletePublisher(PublisherDto publisher)
+    private async Task ConfirmDeletePublisher(CellContext<PublisherDto> publisher)
    {
-       try
+        var pub = publisher.Item;
+        var parameters = new DialogParameters { { "ContentText", $"Are you sure you want to delete publisher '{pub.Name}'?" } };
+       var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
+
+       var dialog = await DialogService.ShowAsync<ConfirmDialog>("Confirm Delete", parameters, options);
+        var result = await dialog.Result;
+       if (!result.Canceled)
        {
-           await Http.DeleteAsync($"api/publishers/{publisher.Id}");
-           _publishers.Remove(publisher);
+            await _packageService.DeletePublisherAsync(pub.Id);
            Snackbar.Add("Publisher deleted successfully", Severity.Success);
-       }
-       catch (Exception ex)
-       {
-           Snackbar.Add($"Error deleting publisher: {ex.Message}", Severity.Error);
-       }
-   }
-
-   private async Task OnRowEditPreview(PublisherDto publisher)
-   {
-       _selectedPublisher = publisher;
-       // Optionally, add logic to handle row edit preview
-   }
-
-   private async Task OnRowEditCommit(PublisherDto publisher)
-   {
-       try
-       {
-           if (publisher.Id == 0)
-           {
-               await Http.PostAsJsonAsync("api/publishers", publisher);
-               Snackbar.Add("Publisher added successfully", Severity.Success);
-           }
-           else
-           {
-               await Http.PutAsJsonAsync($"api/publishers/{publisher.Id}", publisher);
-               Snackbar.Add("Publisher updated successfully", Severity.Success);
-           }
-           await LoadPublishers();
-       }
-       catch (Exception ex)
-       {
-           Snackbar.Add($"Error saving publisher: {ex.Message}", Severity.Error);
        }
    }
 }

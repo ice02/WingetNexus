@@ -197,7 +197,7 @@ namespace WingetNexus.WingetApi.Controllers.v1
                         PackageName = package.Name,
                         ShortDescription = version.ShortDescription
                     },
-                    Installers = GetInstallerData(version),
+                    //Installers = GetInstallerData(version),
                     Locales = new ManifestLocal[0]
                 };
 
