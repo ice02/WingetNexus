@@ -51,34 +51,11 @@ namespace WingetNexus.Data.DataStores
                 var newApp = _mapper.Map<Application>(application);
                 newApp.Publisher = publisher;
 
-                //var newVersions = new List<Version>();
-                //if (application.Versions != null)
-                //{
-                //    foreach (var version in application.Versions)
-                //    {
-                //        var newVersion = _mapper.Map<Version>(version);
-                       
-                //        newVersion.DefaultLocaleContent = _mapper.Map<ContentFiles>(version.DefaultLocaleContent);
-                //        newVersion.InstallersContent = _mapper.Map<ContentFiles>(version.InstallersContent);
-
-
-                //        //newVersion.DefaultLocaleKey = AddContentToDB(_mapper.Map<ContentFiles>(version.DefaultLocaleContent));
-                //        //foreach (var locale in version.LocalesContent)
-                //        //{
-                //        //    var newLocale = _mapper.Map<ContentFiles>(locale);
-                //        //    newVersion.LocalsDatasKey.Add(AddContentToDB(newLocale));
-                //        //}
-                //        //newVersion.InstallersDatasKey = AddContentToDB(_mapper.Map<ContentFiles>(version.InstallersContent));
-
-                //        newVersions.Add(newVersion);
-                //    }
-                //}
-
                 var resultApp = _context.Applications.Add(newApp);
                 await _context.SaveChangesAsync();
 
                 var res =  _mapper.Map<ApplicationDto>(resultApp.Entity);
-                //var res =  ApplicationMapper.ToDto(resultApp.Entity);
+
                 return res;
             }
             catch (Exception exc)
@@ -285,6 +262,7 @@ namespace WingetNexus.Data.DataStores
                 return _mapper.Map<ApplicationDto>(await _context.Applications
                 .Include(a => a.Publisher)
                 .Include(a => a.Versions) // Add versions as navigation property
+                .Include("Versions.DefaultLocaleContent")
                 .FirstOrDefaultAsync(a => a.PackageIdentifier == packageIdentifier));
             }
             catch (Exception exc)

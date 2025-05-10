@@ -10,23 +10,31 @@
 
 <MudButton Variant="Variant.Filled" Color="Color.Default" Class="mb-8" OnClick='() => NavigationManager.NavigateTo("/packagemanager")'>Back to applications list</MudButton>
 
-@if (isEdit)
+@if (isLoading)
 {
-    <PackageMetadataInfos package="@package" />
+    <MudProgressCircular Class="m-auto" Color="Color.Primary" Size="Size.Large" />
 }
+else
+{
 
-<MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors" Model="@package">
+    @if (isEdit)
+    {
+        <PackageMetadataInfos package="@package" />
+    }
 
-    <div class="mt-4">
-        <PackageMetadataEdit Package="package" IsNewPackage="!isEdit" />
-    </div>
+    <MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors" Model="@package">
 
-    
-    <div class="mt-4">
-        <VersionList Package="@package" />
-    </div>
+        <div class="mt-4">
+            <PackageMetadataEdit Package="package" IsNewPackage="!isEdit" />
+        </div>
 
-</MudForm>
+
+        <div class="mt-4">
+            <VersionList Package="@package" />
+        </div>
+
+    </MudForm>
+}
 
 @code {
     [Parameter] public string? id { get; set; }
@@ -44,8 +52,21 @@
     {
         if (!string.IsNullOrEmpty(id))
         {
-            package = await PackageService.GetPackageAsync(id);
-            isEdit = true;
+            isLoading = true;
+            try
+            {
+                package = await PackageService.GetPackageAsync(id);
+                isEdit = true;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                isLoading = false;
+            }
+
             StateHasChanged();
         }
     }

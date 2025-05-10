@@ -2,6 +2,7 @@
 @inject IAntiforgeryHttpClientFactory httpClientFactory
 @inject MudBlazor.ISnackbar snackBar
 @inject IDialogService DialogService
+@inject IContentFileService contentFileService
 
 
 <MudPaper Class="mud-width-full pa-4">
@@ -40,31 +41,43 @@
         {
             <MudExpansionPanels Elevation="0">
                 @foreach (var version in Package.Versions)
-                    {
-                        <MudExpansionPanel>
-                            <TitleContent>
-                                <div class="d-flex">
+                {
+                    <MudExpansionPanel>
+                        <TitleContent>
+                            <div class="d-flex">
+                                <MudIconButton Variant="Variant.Filled" Class="d-flex ml-2" Icon="@Icons.Material.Filled.FileOpen" Color="Color.Tertiary" @onclick="(e=> UpdateFiles(version))" />
                                 <MudIconButton Variant="Variant.Filled" Class="d-flex ml-2" Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" @onclick="(e=> UpdateVersion(version))" />
-                                    <MudIconButton Variant="Variant.Filled" Class="d-flex ml-2 mr-2" Icon="@Icons.Material.Filled.DeleteForever" Color="Color.Secondary" @onclick="(e=> OnDeleteVersionButtonClicked(version.Id))" />
-                                    <MudText Class="mt-2">Version @version.VersionNumber</MudText>
-                                    <MudText Overlap="true" Class="d-flex ml-auto mr-4 mt-2">created @version.CreatedDate</MudText>
-                                </div>
-                            </TitleContent>
-                            <ChildContent>
-                                <div class="mb-4">
-                                    <InstallerList Version="version"  />
-                                </div>
-                            </ChildContent>
-                        </MudExpansionPanel>
-                    }
-                </MudExpansionPanels>
+                                <MudIconButton Variant="Variant.Filled" Class="d-flex ml-2 mr-2" Icon="@Icons.Material.Filled.DeleteForever" Color="Color.Secondary" @onclick="(e=> OnDeleteVersionButtonClicked(version.Id))" />
+                                <MudText Class="mt-2">Version @version.VersionNumber</MudText>
+                                <MudText Overlap="true" Class="d-flex ml-auto mr-4 mt-2">created @version.CreatedDate</MudText>
+                            </div>
+                        </TitleContent>
+                        <ChildContent>
+                            <div class="mb-4">
+                                <InstallerList Version="version"  />
+                            </div>
+                        </ChildContent>
+                    </MudExpansionPanel>
+                }
+            </MudExpansionPanels>
         }
     }
 </MudPaper>
 
+@if (selectedFileContentId > -1)
+{
+    <MudDrawer @bind-Open="@isFileEditorOpen" Width="500px" Height="100%" Anchor="@Anchor.Right" Elevation="1" Variant="@DrawerVariant.Temporary"
+    Overlay="true">
+        <FileEditor FileContentID="@selectedFileContentId"  />
+    </MudDrawer>
+}
 
 @code {
     [Parameter] public ApplicationDto? Package { get; set; }
+
+    private MudPopover fileEditorPopover;
+    private bool isFileEditorOpen = false;
+    private int selectedFileContentId = -1;
 
     private string searchString = "";
     private bool isLoading = false;
@@ -79,6 +92,8 @@
         httpClient = await httpClientFactory.CreateClientAsync();
         //await GetPackageVersions();
     }
+
+
 
     // private async Task GetPackageVersions()
     // {
@@ -106,6 +121,21 @@
         if (version.VersionNumber.Contains(searchString, StringComparison.OrdinalIgnoreCase))
             return true;
         return false;
+    }
+
+    private async Task UpdateFiles(VersionDto version)
+    {
+        //var versionContent = contentFileService.GetContentFileAsync(version.VersionDatasKey)
+        if (version != null)
+        {
+            selectedFileContentId = version.VersionDatasKey; // Assuming InstallersContent has an ID
+            isFileEditorOpen = !isFileEditorOpen;
+            StateHasChanged();
+        }
+        else
+        {
+            snackBar.Add("No file content available for this version.", Severity.Warning);
+        }
     }
 
     private async Task AddVersion()

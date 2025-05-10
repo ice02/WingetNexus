@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WingetNexus.Shared.Models.Winget._1._7
+namespace WingetNexus.Shared.Utils
 {
     /// <summary>
     /// This will wrap API responses that need additional data.
@@ -20,8 +20,8 @@ namespace WingetNexus.Shared.Models.Winget._1._7
         /// <param name="continuationToken">Continuation Token.</param>
         public ApiResponse(T data, string continuationToken = null)
         {
-            this.Data = data;
-            this.ContinuationToken = continuationToken;
+            Data = data;
+            ContinuationToken = continuationToken;
         }
 
         /// <summary>

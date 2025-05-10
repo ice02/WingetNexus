@@ -8,6 +8,7 @@
             services.AddSingleton<IYamlFilesService, YamlFilesService>();
             services.AddSingleton<IApplicationService, ApplicationService>();
             services.AddSingleton<IPackageService, PackageService>();
+            services.AddSingleton<IContentFileService, ContentFileService>();
 
             return services;
         }

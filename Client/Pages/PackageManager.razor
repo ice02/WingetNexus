@@ -39,7 +39,7 @@ else
 else
 { *@
 
-    <MudDataGrid Elevation="25" Class="ma-4" Loading=@isLoading FixedHeader="true" ServerData="LoadGridData" T="ApplicationDto" @ref="_dataGrid" >
+    <MudDataGrid Elevation="25" Class="ma-4" Dense="true" FixedHeader="true" ServerData="LoadGridData" T="ApplicationDto" @ref="_dataGrid" >
         <NoRecordsContent>
             <MudText Class="mt-1">No application found</MudText>
         </NoRecordsContent>

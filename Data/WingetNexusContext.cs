@@ -12,7 +12,6 @@ namespace WingetNexus.Data
         {
             //Database.EnsureDeleted();
             Database.EnsureCreated();
-
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -20,7 +19,7 @@ namespace WingetNexus.Data
             // Define primary key, relationships, and other configurations
             builder.Entity<Publisher>()
                 .HasKey(e => e.Id);
-            builder.Entity<Publisher>() // Replace 'NewEntity' with the actual entity name
+            builder.Entity<Publisher>()
                 .HasMany(e => e.Applications)
                 .WithOne(e => e.Publisher)
                 .IsRequired()
@@ -34,7 +33,6 @@ namespace WingetNexus.Data
                 .Property(e => e.GitHubUrl)
                 .IsRequired(false);
 
-            
             builder.Entity<Application>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -59,7 +57,6 @@ namespace WingetNexus.Data
                         .IsRequired()
                         .OnDelete(DeleteBehavior.Cascade);
             });
-             
 
             builder.Entity<Shared.Models.Entities.Version>(e =>
             {
@@ -80,29 +77,27 @@ namespace WingetNexus.Data
                 // Relationship with ContentFiles for VersionContent
                 e.HasOne(v => v.VersionContent)
                     .WithOne(c => c.VersionContent)
-                    .HasForeignKey<Shared.Models.Entities.Version>(c => c.VersionContentFK) // Adjust foreign key if necessary
+                    .HasForeignKey<Shared.Models.Entities.Version>(c => c.VersionContentFK)
                     .OnDelete(DeleteBehavior.Cascade);
 
                 // Relationship with ContentFiles for InstallersContent
                 e.HasOne(v => v.InstallersContent)
                     .WithOne(c => c.VersionContentForInstaller)
-                    .HasForeignKey<Shared.Models.Entities.Version>(c => c.InstallersContentFK) // Adjust foreign key if necessary
+                    .HasForeignKey<Shared.Models.Entities.Version>(c => c.InstallersContentFK)
                     .OnDelete(DeleteBehavior.Cascade);
 
                 // Relationship with ContentFiles for DefaultLocaleContent
                 e.HasOne(v => v.DefaultLocaleContent)
                     .WithOne(c => c.VersionContentForDefaultLocale)
-                    .HasForeignKey<Shared.Models.Entities.Version>(c => c.DefaultLocaleFK) // Adjust foreign key if necessary
+                    .HasForeignKey<Shared.Models.Entities.Version>(c => c.DefaultLocaleFK)
                     .OnDelete(DeleteBehavior.Cascade);
 
                 // Relationship with ContentFiles for LocalesContent
                 e.HasMany(v => v.LocalesContent)
                     .WithOne(c => c.VersionContentForLocal)
                     .OnDelete(DeleteBehavior.Cascade);
-
             });
 
-            
             builder.Entity<Locale>()
                 .HasKey(e => e.Id);
 
@@ -121,24 +116,15 @@ namespace WingetNexus.Data
             builder.Entity<ContentFiles>()
                 .HasKey(e => e.Id);
 
-
-            // builder.Entity<WingetNexus.Data.Entities.Version>()
-            //     .Property(e => e.JsonField) // Replace 'JsonField' with the actual property name
-            //     .HasConversion(
-            //         v => JsonConvert.SerializeObject(v, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore }),
-            //         v =>
-
-            //             // Deserialize the JSON string based on the JsonVersion property value
-            //             // based on the JsonVersion property value, calculate the full qualified class name
-            //             //var typeName = $"WingetNexus.Shared.Models.Winget.{v.JsonVersion}.{nameof(NewEntity)}"; // Replace 'NewEntity' with the actual entity name
-            //             JsonConvert.DeserializeObject<dynamic>(v, new JsonSerializerSettings
-            //             {
-            //                 NullValueHandling = NullValueHandling.Ignore
-            //                 //Converters = { new VersionedJsonConverter(v.JsonVersion) } // Use the JsonVersion property value
-            //             })
-            //     );
-
-            // Add other entity configurations as needed
+            builder.Entity<Command>().HasKey(c => c.RowId);
+            builder.Entity<CommandMap>().HasKey(cm => new { cm.Command, cm.Package });
+            builder.Entity<Metadata>().HasKey(m => m.Name);
+            builder.Entity<NormName>().HasKey(nn => new { nn.NormName, nn.Package });
+            builder.Entity<NormPublisher>().HasKey(np => new { np.NormPublisher, np.Package });
+            builder.Entity<Pfn>().HasKey(p => new { p.Pfn, p.Package });
+            builder.Entity<ProductCode>().HasKey(pc => new { pc.ProductCode, pc.Package });
+            builder.Entity<TagMap>().HasKey(tm => new { tm.Tag, tm.Package });
+            builder.Entity<UpgradeCode>().HasKey(uc => new { uc.UpgradeCode, uc.Package });
         }
 
         // Define DbSet properties for the new entities
@@ -148,5 +134,89 @@ namespace WingetNexus.Data
         public DbSet<Publisher> Publishers { get; set; }
         public DbSet<ContentFiles> ContentFiles { get; set; }
         public DbSet<TutorialDismissedState> TutorialDismissedStates { get; set; }
+
+        public DbSet<Command> Commands2 { get; set; }
+        public DbSet<CommandMap> Commands2Map { get; set; }
+        public DbSet<Metadata> Metadata { get; set; }
+        public DbSet<NormName> NormNames2 { get; set; }
+        public DbSet<NormPublisher> NormPublishers2 { get; set; }
+        public DbSet<Package> Packages { get; set; }
+        public DbSet<Pfn> Pfns2 { get; set; }
+        public DbSet<ProductCode> ProductCodes2 { get; set; }
+        public DbSet<Tag> Tags2 { get; set; }
+        public DbSet<TagMap> Tags2Map { get; set; }
+        public DbSet<UpgradeCode> UpgradeCodes2 { get; set; }
+    }
+
+    public class Command
+    {
+        public int RowId { get; set; }
+        public string CommandText { get; set; }
+    }
+
+    public class CommandMap
+    {
+        public long Command { get; set; }
+        public long Package { get; set; }
+    }
+
+    public class Metadata
+    {
+        public string Name { get; set; }
+        public string Value { get; set; }
+    }
+
+    public class NormName
+    {
+        public string NormName { get; set; }
+        public long Package { get; set; }
+    }
+
+    public class NormPublisher
+    {
+        public string NormPublisher { get; set; }
+        public long Package { get; set; }
+    }
+
+    public class Package
+    {
+        public int RowId { get; set; }
+        public long Id { get; set; }
+        public long Name { get; set; }
+        public long? Moniker { get; set; }
+        public long LatestVersion { get; set; }
+        public long? ArpMinVersion { get; set; }
+        public long? ArpMaxVersion { get; set; }
+        public long? Hash { get; set; }
+    }
+
+    public class Pfn
+    {
+        public string Pfn { get; set; }
+        public long Package { get; set; }
+    }
+
+    public class ProductCode
+    {
+        public string ProductCode { get; set; }
+        public long Package { get; set; }
+    }
+
+    public class Tag
+    {
+        public int RowId { get; set; }
+        public string TagText { get; set; }
+    }
+
+    public class TagMap
+    {
+        public long Tag { get; set; }
+        public long Package { get; set; }
+    }
+
+    public class UpgradeCode
+    {
+        public string UpgradeCode { get; set; }
+        public long Package { get; set; }
     }
 }

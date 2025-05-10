@@ -106,6 +106,7 @@ services.AddTransient<IApplicationDatastore, ApplicationDatastore>();
 services.AddTransient<IWingetAppDatastore, WingetAppDatastore>();
 services.AddTransient<IVersionDatastore, VersionDatastore>();
 services.AddTransient<IPublisherDataStore, PublisherDataStore>();
+services.AddTransient<IContentFilesDataStore, ContentFilesDataStore>();
 
 services.AddDataMappers();
 

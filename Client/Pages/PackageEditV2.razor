@@ -1,0 +1,68 @@
+﻿@page "/packageEditV2/{id}"
+@page "/packageEditV2"
+
+@attribute [Authorize]
+@inject IPackageService PackageService
+
+@inject MudBlazor.ISnackbar snackBar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+
+<MudButton Variant="Variant.Filled" Color="Color.Default" Class="mb-8" OnClick='() => NavigationManager.NavigateTo("/packagemanager")'>Back to applications list</MudButton>
+
+<StandaloneCodeEditor @ref="_codeEditor" Id="my-code-editor" ConstructionOptions="EditorConstructionOptions" />
+
+@* @if (isEdit)
+{
+    <PackageMetadataInfos package="@package" />
+}
+
+<MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors" Model="@package">
+
+    <div class="mt-4">
+        <PackageMetadataEdit Package="package" IsNewPackage="!isEdit" />
+    </div>
+
+
+    <div class="mt-4">
+        <VersionList Package="@package" />
+    </div>
+
+</MudForm> *@
+
+@code {
+    [Parameter] public string? id { get; set; }
+
+    StandaloneCodeEditor _codeEditor;
+    bool isEdit = false;
+    // bool success;
+    // string[] errors = { };
+    // MudForm form;
+
+    private ApplicationDto package = new ApplicationDto();
+
+    // private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(id))
+        {
+            package = await PackageService.GetPackageAsync(id);
+            isEdit = true;
+
+            _codeEditor.SetValue(package.Versions.FirstOrDefault().DefaultLocaleContent.FileContent);
+
+            StateHasChanged();
+        }
+    }
+
+    private StandaloneEditorConstructionOptions EditorConstructionOptions(StandaloneCodeEditor editor)
+    {
+        return new StandaloneEditorConstructionOptions
+            {
+                AutomaticLayout = true,
+                Language = "yaml",
+                Value = ""
+            };
+    }
+}

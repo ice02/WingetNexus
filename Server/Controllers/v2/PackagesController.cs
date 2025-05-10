@@ -71,9 +71,9 @@ namespace WingetNexus.Controllers.v2
         /// <summary>
         /// Get full package details by identifier
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="packageIdentifier"></param>
         /// <returns></returns>
-        [HttpGet("{id}")]
+        [HttpGet("{packageIdentifier}")]
         //[Authorize]
         //[Authorize(Policy = "get:package")]
         public async Task<ActionResult<ApplicationDto>> GetPackage(string packageIdentifier)
@@ -112,6 +112,8 @@ namespace WingetNexus.Controllers.v2
             }
 
             var newApp = await _dataStore.CreateApplicationAsync(packageForm);
+
+            //TODO: if requested, get binaries from all installer urls and download them to the server based on repo configured
 
             return Ok(newApp);
         }

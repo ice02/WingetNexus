@@ -1,0 +1,64 @@
+﻿@inject IContentFileService ContentFileService
+
+<style>
+    #my-code-editor {
+    height: 500px; /* Adjust the height as needed */
+    overflow: auto;
+    }
+</style>
+
+<div class="toolbar">
+    <button @onclick="ReloadContent">Reload</button>
+    <button @onclick="SaveContent">Save</button>
+</div>
+
+<MudPaper Class="metadata-container">
+    <MudText Typo="Typo.h6">File Name: @FileContentDto?.FileName</MudText>
+    <MudText Typo="Typo.body1">File Type: @FileContentDto?.FileType</MudText>
+    <MudText Typo="Typo.body1">Repo type: @FileContentDto?.RepositoryType</MudText>
+    <MudText Typo="Typo.body1">File Checksum: @FileContentDto?.Checksum</MudText>
+</MudPaper>
+
+<StandaloneCodeEditor @ref="_codeEditor" Id="my-code-editor" ConstructionOptions="EditorConstructionOptions" />
+
+@code {
+    private string FileContent { get; set; } = string.Empty;
+    private string FileFormat { get; set; } = string.Empty;
+    private ContentFileDto FileContentDto { get; set; }
+
+    [Parameter] public int FileContentID { get; set; } = 0;
+
+    StandaloneCodeEditor _codeEditor;
+
+    protected override async Task OnInitializedAsync()
+    {
+        FileContentDto = await ContentFileService.GetContentFileAsync(FileContentID);
+        if (FileContentDto != null)
+        {
+            FileContent = FileContentDto.FileContent;
+            FileFormat = FileContentDto.FileType;
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    private StandaloneEditorConstructionOptions EditorConstructionOptions(StandaloneCodeEditor editor)
+    {
+        return new StandaloneEditorConstructionOptions
+            {
+                AutomaticLayout = true, 
+                Language = FileFormat,
+                Value = ""
+            };
+    }
+
+    private void ReloadContent()
+    {
+        // Logic to reload content from source
+    }
+
+    private void SaveContent()
+    {
+        // Logic to save content
+    }
+}

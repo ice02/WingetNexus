@@ -42,6 +42,12 @@ namespace WingetNexus.WingetApi.Controllers.v1._7
         // installer un package portable public en mode verbose et voir les difference dans le payload
         // Dependencies (windowsFeatures, windowsLibraries, packageDependencies, externalDependencies)
 
+        [HttpGet]
+        public IActionResult GetCache()
+        {
+
+        }
+
         [AllowAnonymous]
         [HttpGet("information")]
         public IActionResult Information()

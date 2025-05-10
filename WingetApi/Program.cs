@@ -55,7 +55,8 @@ services
         options.JsonSerializerOptions.Converters.Add(enumConverter);
     });
 
-services.AddSingleton<IWingetNexusDataStore, WingetNexusDataStore>();
+services.AddSingleton<IWingetAppDatastore, WingetAppDatastore>();
+services.AddSingleton<ILocalCacheService, LocalCacheService>();
 
 //Storage management
 if (featureManager.IsEnabledAsync("S3Storage").Result)
